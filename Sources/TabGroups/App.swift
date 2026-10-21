@@ -32,9 +32,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var permissionTimer: Timer?
     private var signalSources: [DispatchSourceSignal] = []
     private var started = false
+    private let settings = SettingsWindow()
+    private var launchedAtLogin = false
+
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        // Started as a login item: stay out of sight.
+        let event = NSAppleEventManager.shared().currentAppleEvent
+        launchedAtLogin = event?.eventID == kAEOpenApplication
+            && event?.paramDescriptor(forKeyword: keyAEPropData)?.enumCodeValue == keyAELaunchedAsLogInItem
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         handleSignals()
+        setUpMenu()
+        if !launchedAtLogin { settings.show() }
 
         let prompt = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         if AXIsProcessTrustedWithOptions(prompt) {
@@ -51,6 +62,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Opened again from Finder, Spotlight or the Dock.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        settings.show()
+        return false
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         // Never leave windows parked in a corner.
         groups.ungroupAll()
@@ -63,6 +80,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         tracker.start()
         drags.start()
     }
+
+    /// Only on screen with the Dock icon shown, but its shortcuts work either way.
+    private func setUpMenu() {
+        let appMenu = NSMenu()
+        appMenu.addItem(withTitle: "Settings…", action: #selector(showSettings), keyEquivalent: ",").target = self
+        appMenu.addItem(withTitle: "Close Window", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Quit TabGroups", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let root = NSMenuItem()
+        root.submenu = appMenu
+        NSApp.mainMenu = NSMenu()
+        NSApp.mainMenu?.addItem(root)
+    }
+
+    @objc private func showSettings() { settings.show() }
 
     /// Ctrl-C from `swift run` skips applicationWillTerminate; route it through terminate.
     private func handleSignals() {
@@ -83,7 +115,7 @@ enum TabGroupsApp {
         let app = NSApplication.shared
         let delegate = AppDelegate()   // run() never returns, so this stays alive
         app.delegate = delegate
-        app.setActivationPolicy(.accessory)   // no Dock icon, no menu bar
+        SettingsWindow.applyDockPolicy()   // no Dock icon unless asked for
         app.run()
     }
 }

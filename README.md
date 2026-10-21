@@ -11,7 +11,8 @@ Cross-app window tabs for macOS, as a small native Swift app. Drop one window on
 - **Reorder:** drag a tab along the strip.
 - **Tear off:** drag a tab more than 24 px off the strip. It becomes its own window again, at the size it had before it joined.
 - **Close:** hover a tab and click ✕.
-- **Context menu:** right-click a tab for *Remove from Group*, *Ungroup All*, or *Launch at Login* (a checkmark toggle; it registers TabGroups as a login item, so it only works when run as `TabGroups.app`).
+- **Context menu:** right-click a tab for *Remove from Group* or *Ungroup All*.
+- **Settings window:** opening TabGroups (or opening it again while it runs) shows a small Liquid Glass window with *Launch at login*, *Show in Dock* and *Quit TabGroups*. *Launch at login* registers the app as a login item, so it needs `TabGroups.app`; a launch at login stays out of sight.
 - The strip follows its window live while you move or resize it, makes room for itself when macOS tiles the window to a screen edge, and is hidden in Mission Control.
 
 ## Requirements
@@ -33,7 +34,7 @@ On first launch macOS asks for Accessibility access: tick TabGroups (or your ter
 
 ## Quitting
 
-TabGroups has no Dock icon and no menu-bar item. Quit it with Ctrl-C in its terminal, `pkill -INT TabGroups`, or **Quit** in Activity Monitor. Every group is dissolved first and parked windows are put back on screen. Avoid *Force Quit*: it leaves parked windows in the corner (bring them back with the app's *Window ▸ Zoom* or Mission Control).
+By default TabGroups has no Dock icon and no menu-bar item. Open it again to bring up its window and click **Quit TabGroups** (or press ⌘Q there); Ctrl-C in its terminal and `pkill -INT TabGroups` work too. Every group is dissolved first and parked windows are put back on screen. Avoid *Force Quit*: it leaves parked windows in the corner (bring them back with the app's *Window ▸ Zoom* or Mission Control).
 
 ## How it works
 

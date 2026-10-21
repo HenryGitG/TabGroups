@@ -1,7 +1,7 @@
 # TabGroups — handoff notes
 
 Goal: re-implement TrellisWM's "Tab groups" feature (https://trelliswm.app) as a native
-macOS background app (no Dock icon, no menu-bar item) in Swift: drop a window on the middle of another (from any app) and
+macOS background app (no menu-bar item; Dock icon optional) in Swift: drop a window on the middle of another (from any app) and
 pause → they stack under one strip of tabs; click a tab to switch; drag a tab out to tear
 it off. Code comments in English; the user prefers to talk in Chinese.
 
@@ -32,7 +32,8 @@ it off. Code comments in English; the user prefers to talk in Chinese.
 | `DragController.swift` | `NSEvent` global monitors; detects a title-bar drag via WindowServer bounds (`Win.serverFrame`; AX position lags mid-drag) and moves the strip with that frame (`GroupManager.dragMoved`); middle zone = target inset 25%; dwell 0.35 s / slop 12 px → `DropHighlight`; mouse-up → `GroupManager.join` |
 | `GroupManager.swift` | `TabGroup` model (frame includes the 34 px strip). select = set the frame + raise the shown tab, **park** the others (move to the bottom-right corner, 1 px visible, same size). Follows the shown tab when the user moves/resizes it (strip follows live). Ignores our own AX writes for 0.5 s. Ungroups everything on quit. |
 | `TabStrip.swift` | `TabStripPanel`: borderless non-activating `NSPanel`, `.normal` level, `order(.above, relativeTo: activeWindowID)`. `TabStripView`: draw, hover ✕, drag to reorder, drag beyond 24 px → torn (`TabChip` follows the pointer) |
-| `App.swift` | `@main`, `LoginItem` (launch at login via `SMAppService.mainApp`, app bundle only; toggled from the strip's context menu), AX permission prompt + polling, SIGINT/SIGTERM → terminate (so windows get restored) |
+| `Settings.swift` | `SettingsWindow`: the app's only window (Liquid Glass via `NSGlassEffectView` on macOS 26+), shown on open/reopen but not on a login launch; *Launch at login*, *Show in Dock* (`UserDefaults` `showInDock` → activation policy), *Quit* |
+| `App.swift` | `@main`, `LoginItem` (launch at login via `SMAppService.mainApp`, app bundle only), minimal app menu (⌘, ⌘W ⌘Q), AX permission prompt + polling, SIGINT/SIGTERM → terminate (so windows get restored) |
 
 ## Next steps (suggested order)
 

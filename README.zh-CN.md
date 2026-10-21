@@ -3,7 +3,8 @@
 [English](README.md)
 
 把一个窗口拖到另一个窗口的**中间**，停一下（约 0.35 秒）出现高亮，松手后两个窗口叠成一组，共用上方一条标签栏，不管它们属于哪个 app。
-点标签切换；在栏内拖动标签可以排序；把标签拖出栏外就撕下来成为独立窗口；鼠标悬停时点 ✕ 关闭这个窗口；右键标签可以把它移出组，或解散所有组（Ungroup All）；右键菜单里还有「Launch at Login」开关，打勾后开机自动启动（只在以 `TabGroups.app` 运行时可用，`swift run` 时是灰的）。
+点标签切换；在栏内拖动标签可以排序；把标签拖出栏外就撕下来成为独立窗口；鼠标悬停时点 ✕ 关闭这个窗口；右键标签可以把它移出组，或解散所有组（Ungroup All）。
+打开 TabGroups（或在它运行时再打开一次）会显示一个 Liquid Glass 风格的设置窗口：「Launch at login」开机自启动（需要以 `TabGroups.app` 运行，`swift run` 时是灰的；开机自启动时不弹窗口）、「Show in Dock」是否显示 Dock 图标，以及「Quit TabGroups」退出按钮。
 
 ## 运行
 
@@ -20,7 +21,7 @@ chmod +x make-app.sh && ./make-app.sh && open build/TabGroups.app
 第一次运行会弹出辅助功能授权，请到「系统设置 ▸ 隐私与安全性 ▸ 辅助功能」里勾选它。授权后无需重启，程序每秒检查一次，拿到权限就会开始工作。
 程序不能放进沙盒：Accessibility API 在沙盒里不可用，所以它也上不了 Mac App Store。
 
-程序没有 Dock 图标也没有菜单栏图标。退出时（在终端按 Ctrl-C，或 `pkill -INT TabGroups`，或在活动监视器里点「退出」）会先解散所有组，把藏起来的窗口放回屏幕上。
+默认没有 Dock 图标也没有菜单栏图标。退出时（再打开一次 app，在设置窗口点「Quit TabGroups」或按 ⌘Q；也可以在终端按 Ctrl-C，或 `pkill -INT TabGroups`）会先解散所有组，把藏起来的窗口放回屏幕上。
 
 ## 文件
 

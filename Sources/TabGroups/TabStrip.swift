@@ -251,15 +251,8 @@ final class TabStripView: NSView {
             item.representedObject = items[i].id
         }
         menu.addItem(withTitle: "Ungroup All", action: #selector(ungroupAll), keyEquivalent: "").target = self
-        menu.addItem(.separator())
-        let login = menu.addItem(withTitle: LoginItem.isAvailable ? "Launch at Login" : "Launch at Login (needs TabGroups.app)",
-                                 action: LoginItem.isAvailable ? #selector(toggleLaunchAtLogin) : nil, keyEquivalent: "")
-        login.target = self
-        login.state = LoginItem.isEnabled ? .on : .off
         return menu
     }
-
-    @objc private func toggleLaunchAtLogin() { LoginItem.toggle() }
 
     @objc private func removeFromGroup(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? CGWindowID, let owner else { return }
