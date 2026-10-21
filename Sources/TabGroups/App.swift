@@ -1,5 +1,28 @@
 import AppKit
 import ApplicationServices
+import ServiceManagement
+
+/// Launch at login, through the system's login items. Only an app bundle can
+/// register; a bare `swift run` binary can't.
+@MainActor
+enum LoginItem {
+    static var isAvailable: Bool { Bundle.main.bundleURL.pathExtension == "app" }
+    static var isEnabled: Bool { isAvailable && SMAppService.mainApp.status == .enabled }
+
+    static func toggle() {
+        do {
+            if isEnabled {
+                try SMAppService.mainApp.unregister()
+            } else {
+                try SMAppService.mainApp.register()
+            }
+        } catch {
+            NSLog("Launch at login: %@", error.localizedDescription)
+        }
+        // The user may have to allow it in System Settings ▸ General ▸ Login Items.
+        if SMAppService.mainApp.status == .requiresApproval { SMAppService.openSystemSettingsLoginItems() }
+    }
+}
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {

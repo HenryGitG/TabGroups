@@ -11,7 +11,7 @@ Cross-app window tabs for macOS, as a small native Swift app. Drop one window on
 - **Reorder:** drag a tab along the strip.
 - **Tear off:** drag a tab more than 24 px off the strip. It becomes its own window again, at the size it had before it joined.
 - **Close:** hover a tab and click ✕.
-- **Context menu:** right-click a tab for *Remove from Group* or *Ungroup All*.
+- **Context menu:** right-click a tab for *Remove from Group*, *Ungroup All*, or *Launch at Login* (a checkmark toggle; it registers TabGroups as a login item, so it only works when run as `TabGroups.app`).
 - The strip follows its window live while you move or resize it, makes room for itself when macOS tiles the window to a screen edge, and is hidden in Mission Control.
 
 ## Requirements
