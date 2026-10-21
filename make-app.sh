@@ -8,9 +8,10 @@ swift build -c release
 
 APP=build/TabGroups.app
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/TabGroups "$APP/Contents/MacOS/"
 cp Support/Info.plist "$APP/Contents/"
+cp Support/AppIcon.icns "$APP/Contents/Resources/"
 
 # Ad-hoc signing: macOS ties the Accessibility grant to this signature, so
 # after every rebuild you may need to re-tick TabGroups in
