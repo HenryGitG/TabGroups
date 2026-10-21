@@ -30,7 +30,7 @@ swift run
 ./make-app.sh && open build/TabGroups.app
 ```
 
-On first launch macOS asks for Accessibility access: tick TabGroups (or your terminal) in **System Settings ▸ Privacy & Security ▸ Accessibility**. The app checks every second and starts as soon as it's allowed; no restart needed. `make-app.sh` signs ad hoc, so the grant may need re-ticking after each rebuild.
+On first launch macOS asks for Accessibility access: tick TabGroups (or your terminal) in **System Settings ▸ Privacy & Security ▸ Accessibility**. The app checks every second and starts as soon as it's allowed; no restart needed. `make-app.sh` signs ad hoc, so the grant may need re-ticking after each rebuild. It compiles the Liquid Glass app icon (`Support/AppIcon.icon`, an Icon Composer file) with `actool`, which comes with Xcode; with only the command-line tools the app gets a generic icon.
 
 ## Quitting
 

@@ -33,7 +33,7 @@ it off. Code comments in English; the user prefers to talk in Chinese.
 | `GroupManager.swift` | `TabGroup` model (frame includes the 34 px strip). select = set the frame + raise the shown tab, **park** the others (move to the bottom-right corner, 1 px visible, same size). Follows the shown tab when the user moves/resizes it (strip follows live). Ignores our own AX writes for 0.5 s. Ungroups everything on quit. |
 | `TabStrip.swift` | `TabStripPanel`: borderless non-activating `NSPanel`, `.normal` level, `order(.above, relativeTo: activeWindowID)`. `TabStripView`: draw, hover ✕, drag to reorder, drag beyond 24 px → torn (`TabChip` follows the pointer) |
 | `Settings.swift` | `SettingsWindow`: the app's only window (Liquid Glass via `NSGlassEffectView` on macOS 26+), shown on open/reopen but not on a login launch; *Launch at login*, *Show in Dock* (`UserDefaults` `showInDock` → activation policy), *Quit* |
-| `Support/AppIcon.swift` | Draws the app icon (a dark strip of tabs over a window, a stacked window behind); `Support/make-icns.sh` turns its PNG into `AppIcon.icns`, which `make-app.sh` bundles |
+| `Support/AppIcon.icon` | Icon Composer file (open it in Icon Composer to edit): three SVG layers on a 1024 canvas (back window, dark tab strip, front window) with Liquid Glass. `make-app.sh` compiles it with `actool` (needs Xcode) into `Assets.car` + a fallback `AppIcon.icns` |
 | `App.swift` | `@main`, `LoginItem` (launch at login via `SMAppService.mainApp`, app bundle only), minimal app menu (⌘, ⌘W ⌘Q), AX permission prompt + polling, SIGINT/SIGTERM → terminate (so windows get restored) |
 
 ## Next steps (suggested order)

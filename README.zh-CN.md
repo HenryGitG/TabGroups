@@ -18,6 +18,8 @@ swift run
 chmod +x make-app.sh && ./make-app.sh && open build/TabGroups.app
 ```
 
+`make-app.sh` 会用 Xcode 自带的 `actool` 编译 Liquid Glass 图标（`Support/AppIcon.icon`，可以用 Icon Composer 打开编辑）；只装了命令行工具时，app 会用通用图标。
+
 第一次运行会弹出辅助功能授权，请到「系统设置 ▸ 隐私与安全性 ▸ 辅助功能」里勾选它。授权后无需重启，程序每秒检查一次，拿到权限就会开始工作。
 程序不能放进沙盒：Accessibility API 在沙盒里不可用，所以它也上不了 Mac App Store。
 
