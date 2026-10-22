@@ -29,11 +29,14 @@ enum DragKey: String, CaseIterable {
     }
 }
 
-/// Watches the user dragging other apps' windows. Drop one on the *middle*
-/// of another with the drag key held → they become tabs of one group. (The
-/// key is the intent, so unlike TrellisWM there's no pause to wait out.)
+/// Watches the user dragging other apps' windows by their title bars.
+/// Drop one on the *middle* of another and hold still for a moment → they
+/// become tabs of one group. (TrellisWM: "Drag a window onto the middle of
+/// another and pause a moment.")
 @MainActor
 final class DragController {
+    var holdDuration: TimeInterval = 0.35
+    var holdSlop: CGFloat = 12
     var middleInset: CGFloat = 0.25         // outer 25% of each side is "edge", not "middle"
 
     private let tracker: WindowTracker
@@ -44,10 +47,13 @@ final class DragController {
     private var source: Win?
     private var sourceStart: CGRect?
     private var moving = false
+    private var ticker: Timer?
 
-    /// Where a drop would group, highlighted.
     private var target: Win?
     private var targetZone: CGRect = .zero
+    private var anchor: CGPoint = .zero
+    private var since = Date.distantFuture
+    private var armed = false
 
     private var tap: CFMachPort?
     /// Taken from the event stream: the polled modifier state
@@ -111,9 +117,6 @@ final class DragController {
             guard grab != nil else { return true }
             keyDragged(event.location)
             return false
-        case .flagsChanged:
-            if moving { evaluate() }   // the key went down or up mid-drag
-            return true
         case .leftMouseUp:
             guard grab != nil else { return true }
             let window = source
@@ -155,7 +158,7 @@ final class DragController {
             guard hypot(p.x - pressPoint.x, p.y - pressPoint.y) > 3 else { return }   // still a click
             pressed = nil
             w.raise()
-            moving = true
+            startMoving()
         }
         let origin = CGPoint(x: p.x - grab.x, y: p.y - grab.y)
         AX.withoutEnhancedUI(w.appElement) { AX.setPosition(w.element, origin) }
@@ -180,6 +183,14 @@ final class DragController {
         }
     }
 
+    private func startMoving() {
+        moving = true
+        // Keep evaluating while the pointer rests: no drag events arrive then.
+        ticker = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.evaluate() }
+        }
+    }
+
     private func mouseDown() {
         reset()
         guard let w = tracker.topWindow(at: Coords.cursor()) else { return }
@@ -192,14 +203,14 @@ final class DragController {
         if !moving {
             // Is the window itself moving (a title-bar drag), not a text selection?
             guard let f = w.serverFrame, f.size == start.size, f.origin != start.origin else { return }
-            moving = true
+            startMoving()
         }
         if let f = w.serverFrame { groups.dragMoved(w.id, frame: f) }
         evaluate()
     }
 
     private func mouseUp() {
-        let go = moving && keyHeld
+        let go = moving && armed && keyHeld
         let src: Win? = go ? source : nil
         let dst: Win? = go ? target : nil
         reset()
@@ -234,19 +245,34 @@ final class DragController {
               z.insetBy(dx: z.width * middleInset, dy: z.height * middleInset).contains(p)
         else { disarm(); return }
 
-        guard c.id != target?.id else { return }
-        target = c
-        targetZone = z
-        highlight.show(over: z)
+        if c.id != target?.id {
+            target = c
+            targetZone = z
+            anchor = p
+            since = Date()
+            armed = false
+            highlight.hide()
+        }
+        guard !armed else { return }
+        if hypot(p.x - anchor.x, p.y - anchor.y) > holdSlop {
+            anchor = p          // still travelling: restart the hold
+            since = Date()
+        } else if Date().timeIntervalSince(since) >= holdDuration {
+            armed = true
+            highlight.show(over: z)
+        }
     }
 
     private func disarm() {
         target = nil
+        armed = false
         highlight.hide()
     }
 
     private func reset() {
         groups.dragEnded()
+        ticker?.invalidate()
+        ticker = nil
         source = nil
         sourceStart = nil
         grab = nil
