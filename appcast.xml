@@ -3,6 +3,15 @@
     <channel>
         <title>TabGroups</title>
         <item>
+            <title>0.3</title>
+            <pubDate>Thu, 22 Oct 2026 20:49:35 +0800</pubDate>
+            <sparkle:version>3</sparkle:version>
+            <sparkle:shortVersionString>0.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <enclosure url="https://github.com/passion729/TabGroups/releases/download/v0.3/TabGroups-0.3.zip" length="2676381" type="application/octet-stream" sparkle:edSignature="2RheKCLXTF6+Lc9CdKcw4WpKT6zFiKKshFP8sc7eZGECtd9vTPMw5qs2/K+/HEog0LoHHc6zMlspA1qVArdpAg=="/>
+        </item>
+        <item>
             <title>0.2</title>
             <pubDate>Thu, 22 Oct 2026 20:03:57 +0800</pubDate>
             <sparkle:version>2</sparkle:version>
