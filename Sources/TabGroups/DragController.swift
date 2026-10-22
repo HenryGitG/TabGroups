@@ -253,11 +253,14 @@ final class DragController {
             armed = false
             highlight.hide()
         }
-        guard !armed else { return }
         if hypot(p.x - anchor.x, p.y - anchor.y) > holdSlop {
-            anchor = p          // still travelling: restart the hold
+            // Travelling (again): restart the hold. Moving on after the
+            // highlight came up takes it back: only a release while still
+            // groups.
+            anchor = p
             since = Date()
-        } else if Date().timeIntervalSince(since) >= holdDuration {
+            if armed { armed = false; highlight.hide() }
+        } else if !armed && Date().timeIntervalSince(since) >= holdDuration {
             armed = true
             highlight.show(over: z)
         }
