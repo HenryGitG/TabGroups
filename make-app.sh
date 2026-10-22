@@ -21,11 +21,11 @@ else
   echo "actool not found (needs Xcode): building without the app icon"
 fi
 
-# Ad-hoc signing: macOS ties the Accessibility grant to this signature, so
-# after every rebuild you may need to re-tick TabGroups in
-# System Settings > Privacy & Security > Accessibility.
-# Sign with your Apple Development identity instead to keep the grant:
-#   codesign --force --sign "Apple Development: you@example.com" "$APP"
-codesign --force --sign - "$APP"
+# Ad-hoc signing by default: macOS ties the Accessibility grant to the
+# signature, so after every rebuild you may need to re-tick TabGroups in
+# System Settings > Privacy & Security > Accessibility. Sign with a real
+# identity to keep the grant across rebuilds:
+#   SIGN_IDENTITY="Apple Development: you@example.com" ./make-app.sh
+codesign --force --sign "${SIGN_IDENTITY:--}" "$APP"
 
 echo "Built $APP  ->  open $APP"
