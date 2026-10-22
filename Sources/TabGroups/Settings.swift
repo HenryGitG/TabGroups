@@ -17,6 +17,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
     private let loginBox = NSButton(checkboxWithTitle: "Launch at login", target: nil, action: nil)
     private let dockBox = NSButton(checkboxWithTitle: "Show in Dock", target: nil, action: nil)
     private let keyPopup = NSPopUpButton()
+    private let switchPopup = NSPopUpButton()
     private let axStatus = NSTextField(labelWithString: "")
     private lazy var window = makeWindow()
 
@@ -31,6 +32,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         loginBox.isEnabled = LoginItem.isAvailable
         dockBox.state = Self.showInDock ? .on : .off
         keyPopup.selectItem(at: DragKey.allCases.firstIndex(of: DragKey.current) ?? 0)
+        switchPopup.selectItem(at: SwitchKey.allCases.firstIndex(of: SwitchKey.current) ?? 0)
         let trusted = AXIsProcessTrusted()
         axStatus.stringValue = trusted ? "✓ Accessibility allowed" : "⚠︎ Accessibility not allowed"
         axStatus.textColor = trusted ? .secondaryLabelColor : .systemOrange
@@ -64,6 +66,14 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         DragKey.current = DragKey.allCases[keyPopup.indexOfSelectedItem]
     }
 
+    @objc private func pickSwitchKey() {
+        SwitchKey.current = SwitchKey.allCases[switchPopup.indexOfSelectedItem]
+        // The strips' hints show the key.
+        for case let strip as TabStripPanel in NSApp.windows {
+            strip.contentView?.subviews.forEach { $0.needsDisplay = true }
+        }
+    }
+
     private func makeWindow() -> NSWindow {
         loginBox.target = self
         loginBox.action = #selector(toggleLogin)
@@ -74,12 +84,18 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         keyPopup.target = self
         keyPopup.action = #selector(pickKey)
         let keyRow = NSStackView(views: [NSTextField(labelWithString: "Drag key:"), keyPopup])
+        switchPopup.addItems(withTitles: SwitchKey.allCases.map(\.title))
+        switchPopup.target = self
+        switchPopup.action = #selector(pickSwitchKey)
+        let switchRow = NSStackView(views: [NSTextField(labelWithString: "Switch tabs:"), switchPopup,
+                                            NSTextField(labelWithString: "+ 1…9")])
         let axRow = NSStackView(views: [axStatus, NSButton(title: "Open Settings…", target: self,
                                                            action: #selector(openAccessibility))])
 
         let hint = NSTextField(wrappingLabelWithString:
             "Hold the drag key to move a window by any spot. Drag it onto the middle of another, "
-            + "still holding the key, and pause a moment to stack them under one strip of tabs.")
+            + "still holding the key, and pause a moment to stack them under one strip of tabs. "
+            + "The switch key with 1…9 shows that tab (9: the last).")
         hint.textColor = .secondaryLabelColor
         hint.widthAnchor.constraint(equalToConstant: 300).isActive = true
         let quit = NSButton(title: "Quit TabGroups", target: NSApp, action: #selector(NSApplication.terminate(_:)))
@@ -87,7 +103,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         let version = NSTextField(labelWithString: "Version \(Updates.current)")
         version.textColor = .secondaryLabelColor
         let updateRow = NSStackView(views: [updates, version])
-        let rows: [NSView] = [hint, axRow, keyRow, loginBox, dockBox, updateRow, quit]
+        let rows: [NSView] = [hint, axRow, keyRow, switchRow, loginBox, dockBox, updateRow, quit]
 
         let stack = NSStackView(views: rows)
         stack.orientation = .vertical
@@ -95,7 +111,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         stack.spacing = 12
         stack.setCustomSpacing(20, after: hint)
         stack.setCustomSpacing(16, after: axRow)
-        stack.setCustomSpacing(16, after: keyRow)
+        stack.setCustomSpacing(16, after: switchRow)
         stack.setCustomSpacing(20, after: dockBox)
         // The content runs under the transparent title bar: leave room for it.
         stack.edgeInsets = NSEdgeInsets(top: 44, left: 20, bottom: 20, right: 20)

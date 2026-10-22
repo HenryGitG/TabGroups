@@ -29,6 +29,50 @@ enum DragKey: String, CaseIterable {
     }
 }
 
+/// Held with 1…9, it switches tabs in the focused window's group. ⌥ by
+/// default: apps' own ⌘1…⌘9 (Electron apps, browsers, Ghostty) mostly live
+/// outside their menus, so there's no telling which apps use them.
+enum SwitchKey: String, CaseIterable {
+    case option, control, command, controlOption
+
+    static var current: SwitchKey {
+        get { UserDefaults.standard.string(forKey: "switchKey").flatMap(SwitchKey.init) ?? .option }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "switchKey") }
+    }
+
+    var flags: CGEventFlags {
+        switch self {
+        case .option: .maskAlternate
+        case .control: .maskControl
+        case .command: .maskCommand
+        case .controlOption: [.maskControl, .maskAlternate]
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .option: "⌥"
+        case .control: "⌃"
+        case .command: "⌘"
+        case .controlOption: "⌃⌥"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .option: "⌥ Option"
+        case .control: "⌃ Control"
+        case .command: "⌘ Command"
+        case .controlOption: "⌃⌥ Control-Option"
+        }
+    }
+
+    /// With ⌘, a window's own tab bar keeps ⌘1…⌘9 for its own tabs.
+    @MainActor func yields(to window: Win) -> Bool {
+        self == .command && AX.hasOwnTabs(window.element)
+    }
+}
+
 /// Watches the user dragging other apps' windows by their title bars.
 /// Drop one on the *middle* of another and hold still for a moment → they
 /// become tabs of one group. (TrellisWM: "Drag a window onto the middle of
@@ -142,17 +186,17 @@ final class DragController {
     /// ANSI key codes of 1…9 (physical keys, so it works on any layout).
     private static let digitKeys: [Int64] = [18, 19, 20, 21, 23, 22, 26, 28, 25]
 
-    /// ⌘1…⌘8 show that tab of the focused window's group, ⌘9 the last one
-    /// (as in Ghostty and browsers). Returns true when it was ours; a window
-    /// with its own tab bar keeps them for its own tabs.
+    /// Switch key + 1…8 shows that tab of the focused window's group, + 9
+    /// the last one (as in Ghostty and browsers). Returns true when it was ours.
     private func switchTab(_ event: CGEvent) -> Bool {
+        let key = SwitchKey.current
         let mods = event.flags.intersection([.maskCommand, .maskShift, .maskAlternate, .maskControl])
-        guard mods == .maskCommand,
+        guard mods == key.flags,
               let n = Self.digitKeys.firstIndex(of: event.getIntegerValueField(.keyboardEventKeycode)),
               let id = groups.focused, let g = groups.group(of: id),
-              let w = tracker.windows[id], !AX.hasOwnTabs(w.element) else { return false }
+              let w = tracker.windows[id], !key.yields(to: w) else { return false }
         let i = n == 8 ? g.tabs.count - 1 : n
-        // Out of range or held down: still ours, the app's own ⌘N would confuse.
+        // Out of range or held down: still ours, the app's own use would confuse.
         if i < g.tabs.count, event.getIntegerValueField(.keyboardEventAutorepeat) == 0, g.tabs[i] != g.active {
             groups.select(g.tabs[i], in: g)
         }

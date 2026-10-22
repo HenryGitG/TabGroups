@@ -313,8 +313,8 @@ final class GroupManager {
         let items = g.tabs.compactMap { id in
             tracker.windows[id].map { TabItem(id: id, title: $0.title, icon: $0.icon) }
         }
-        // ⌘N goes to the shown tab's own tabs then: no hints.
-        let hints = tracker.windows[g.active].map { !AX.hasOwnTabs($0.element) } ?? true
+        // The key goes to the shown tab's own tabs then: no hints.
+        let hints = tracker.windows[g.active].map { !SwitchKey.current.yields(to: $0) } ?? true
         g.strip.update(items: items, active: g.active, hints: hints)
     }
 

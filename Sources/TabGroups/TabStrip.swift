@@ -215,9 +215,10 @@ final class TabStripView: NSView {
         }
     }
 
-    /// ⌘1…⌘8, and ⌘9 for the last tab (see `DragController.switchTab`).
+    /// Switch key + 1…8, and + 9 for the last tab (see `DragController.switchTab`).
     private func shortcut(_ i: Int) -> String? {
-        !hints ? nil : i < 8 ? "⌘\(i + 1)" : i == items.count - 1 ? "⌘9" : nil
+        let key = SwitchKey.current.symbol
+        return !hints ? nil : i < 8 ? "\(key)\(i + 1)" : i == items.count - 1 ? "\(key)9" : nil
     }
 
     // MARK: Mouse
