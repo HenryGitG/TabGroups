@@ -29,8 +29,8 @@ enum DragKey: String, CaseIterable {
     }
 }
 
-/// Watches the user dragging other apps' windows. Drop one on the *middle*
-/// of another with the drag key held → they become tabs of one group. (The
+/// Watches the user dragging other apps' windows. Drop one with its centre
+/// on the *middle* of another, drag key held → they become tabs of one group. (The
 /// key is the intent, so unlike TrellisWM there's no pause to wait out.)
 @MainActor
 final class DragController {
@@ -43,6 +43,9 @@ final class DragController {
     private var monitors: [Any] = []
     private var source: Win?
     private var sourceStart: CGRect?
+    /// Where the dragged window is now. Its centre, not the pointer, picks
+    /// the target: the drag key lets you grab a window anywhere.
+    private var sourceFrame: CGRect?
     private var moving = false
 
     /// Where a drop would group, highlighted.
@@ -159,7 +162,8 @@ final class DragController {
         }
         let origin = CGPoint(x: p.x - grab.x, y: p.y - grab.y)
         AX.withoutEnhancedUI(w.appElement) { AX.setPosition(w.element, origin) }
-        groups.dragMoved(w.id, frame: CGRect(origin: origin, size: start.size))
+        sourceFrame = CGRect(origin: origin, size: start.size)
+        groups.dragMoved(w.id, frame: sourceFrame!)
         evaluate()
     }
 
@@ -194,7 +198,8 @@ final class DragController {
             guard let f = w.serverFrame, f.size == start.size, f.origin != start.origin else { return }
             moving = true
         }
-        if let f = w.serverFrame { groups.dragMoved(w.id, frame: f) }
+        sourceFrame = w.serverFrame
+        if let f = sourceFrame { groups.dragMoved(w.id, frame: f) }
         evaluate()
     }
 
@@ -211,9 +216,9 @@ final class DragController {
     }
 
     private func evaluate() {
-        guard moving, let src = source else { return }
+        guard moving, let src = source, let f = sourceFrame else { return }
         guard keyHeld else { disarm(); return }
-        let p = Coords.cursor()
+        let p = CGPoint(x: f.midX, y: f.midY)
         let sourceTabs = Set(groups.group(of: src.id)?.tabs ?? [src.id])
 
         var candidate: Win?
@@ -249,6 +254,7 @@ final class DragController {
         groups.dragEnded()
         source = nil
         sourceStart = nil
+        sourceFrame = nil
         grab = nil
         pressed = nil
         moving = false
