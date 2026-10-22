@@ -57,6 +57,10 @@ final class DragController {
     /// (`CGEventSource.flagsState`) drops it for a moment when a dragged
     /// window crosses to another display.
     private var keyHeld = false
+    /// A drag started with the drag key means "group" however early the key
+    /// is let go (users often release it before the mouse button); a plain
+    /// title-bar drag only does while the key is held.
+    private var intent: Bool { grab != nil || keyHeld }
     /// Pointer offset into the window being moved with the drag key.
     private var grab: CGPoint?
     private var pressPoint: CGPoint = .zero
@@ -204,7 +208,7 @@ final class DragController {
     }
 
     private func mouseUp() {
-        let go = moving && keyHeld
+        let go = moving && intent
         let src: Win? = go ? source : nil
         let dst: Win? = go ? target : nil
         reset()
@@ -217,7 +221,7 @@ final class DragController {
 
     private func evaluate() {
         guard moving, let src = source, let f = sourceFrame else { return }
-        guard keyHeld else { disarm(); return }
+        guard intent else { disarm(); return }
         let p = CGPoint(x: f.midX, y: f.midY)
         let sourceTabs = Set(groups.group(of: src.id)?.tabs ?? [src.id])
 
