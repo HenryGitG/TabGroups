@@ -36,7 +36,7 @@ enum DragKey: String, CaseIterable {
 @MainActor
 final class DragController {
     var holdDuration: TimeInterval = 0.35
-    var holdSlop: CGFloat = 12
+    var holdSlop: CGFloat = 4               // "still" = the pointer stays this close the whole time
     var middleInset: CGFloat = 0.25         // outer 25% of each side is "edge", not "middle"
 
     private let tracker: WindowTracker
