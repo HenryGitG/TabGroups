@@ -77,7 +77,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
 
         let hint = NSTextField(wrappingLabelWithString:
             "Hold the drag key to move a window by any spot. Drag it onto the middle of another, "
-            + "still holding the key, and pause a moment to stack them under one strip of tabs.")
+            + "still holding the key, and let go to stack them under one strip of tabs.")
         hint.textColor = .secondaryLabelColor
         hint.widthAnchor.constraint(equalToConstant: 300).isActive = true
         let quit = NSButton(title: "Quit TabGroups", target: NSApp, action: #selector(NSApplication.terminate(_:)))
