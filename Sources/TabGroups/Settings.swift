@@ -86,8 +86,8 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         let updates = NSButton(title: "Check for Updates…", target: self, action: #selector(checkForUpdates))
         let version = NSTextField(labelWithString: "Version \(Updates.current)")
         version.textColor = .secondaryLabelColor
-        let bottomRow = NSStackView(views: [quit, updates, version])
-        let rows: [NSView] = [hint, axRow, keyRow, loginBox, dockBox, bottomRow]
+        let updateRow = NSStackView(views: [updates, version])
+        let rows: [NSView] = [hint, axRow, keyRow, loginBox, dockBox, updateRow, quit]
 
         let stack = NSStackView(views: rows)
         stack.orientation = .vertical
