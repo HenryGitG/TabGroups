@@ -15,6 +15,7 @@ final class SettingsWindow: NSObject {
 
     private let loginBox = NSButton(checkboxWithTitle: "Launch at login", target: nil, action: nil)
     private let dockBox = NSButton(checkboxWithTitle: "Show in Dock", target: nil, action: nil)
+    private let keyPopup = NSPopUpButton()
     private lazy var window = makeWindow()
 
     func show() {
@@ -27,6 +28,7 @@ final class SettingsWindow: NSObject {
         loginBox.state = LoginItem.isEnabled ? .on : .off
         loginBox.isEnabled = LoginItem.isAvailable
         dockBox.state = Self.showInDock ? .on : .off
+        keyPopup.selectItem(at: DragKey.allCases.firstIndex(of: DragKey.current) ?? 0)
     }
 
     @objc private func toggleLogin() {
@@ -41,24 +43,35 @@ final class SettingsWindow: NSObject {
         DispatchQueue.main.async { MainActor.assumeIsolated { self.show() } }
     }
 
+    @objc private func pickKey() {
+        DragKey.current = DragKey.allCases[keyPopup.indexOfSelectedItem]
+    }
+
     private func makeWindow() -> NSWindow {
         loginBox.target = self
         loginBox.action = #selector(toggleLogin)
         dockBox.target = self
         dockBox.action = #selector(toggleDock)
 
+        keyPopup.addItems(withTitles: DragKey.allCases.map(\.title))
+        keyPopup.target = self
+        keyPopup.action = #selector(pickKey)
+        let keyRow = NSStackView(views: [NSTextField(labelWithString: "Drag key:"), keyPopup])
+
         let hint = NSTextField(wrappingLabelWithString:
-            "Drag a window onto the middle of another and pause a moment to stack them under one strip of tabs.")
+            "Hold the drag key to move a window by any spot. Drag it onto the middle of another, "
+            + "still holding the key, and pause a moment to stack them under one strip of tabs.")
         hint.textColor = .secondaryLabelColor
         hint.widthAnchor.constraint(equalToConstant: 300).isActive = true
         let quit = NSButton(title: "Quit TabGroups", target: NSApp, action: #selector(NSApplication.terminate(_:)))
-        let rows: [NSView] = [hint, loginBox, dockBox, quit]
+        let rows: [NSView] = [hint, keyRow, loginBox, dockBox, quit]
 
         let stack = NSStackView(views: rows)
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 12
         stack.setCustomSpacing(20, after: hint)
+        stack.setCustomSpacing(16, after: keyRow)
         stack.setCustomSpacing(20, after: dockBox)
         // The content runs under the transparent title bar: leave room for it.
         stack.edgeInsets = NSEdgeInsets(top: 44, left: 20, bottom: 20, right: 20)
