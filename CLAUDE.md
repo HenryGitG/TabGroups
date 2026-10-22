@@ -9,14 +9,13 @@ it off. Code comments in English; the user prefers to talk in Chinese.
 
 - Builds cleanly (Swift 6.4 toolchain, no warnings). Basic loop verified with synthetic
   mouse events: group (incl. cross-app, 3 tabs) → switch → tear off → quit restores.
-- Known: Finder clamps parked windows (~20 px stay visible instead of 1).
-- Known: switching tabs sometimes darkens the shadow for 1–2 frames. The two AX position
-  writes return in <2 ms but the app applies them in different frames (measured with
-  `screencapture -v`); old-out-first shows the background instead, which is worse. The only
-  fix found is stacking hidden tabs behind the shown one; the user chose to keep parking.
-- Known: parked windows show in Mission Control and fly back to the corner on exit.
-  TrellisWM's answer is "Park windows out of view small" (shrink when parked; blurry for a
-  moment when shown again). Tried it; the user prefers parked windows to keep their size.
+- Hidden tabs are **stacked** right behind the shown one (same frame), not parked off
+  screen: parked full-size windows made Mission Control shrink every thumbnail (it lays them
+  out where they are), and swapping two windows' positions flickered their shadows. Parking
+  small fixed Mission Control but made hidden tabs near-invisible there. The Dock no longer
+  posts `AXExposeShowAllWindows` (macOS 27), and Mission Control fixes its layout when it
+  opens, so unparking "while it's open" doesn't work.
+- Known: stacked windows show through translucent ones (glass sidebars, see-through terminals).
 - Swift tools 5.9 (Swift 5 language mode), macOS 14+, no sandbox (Accessibility API
   doesn't work sandboxed). All app classes are `@MainActor`; C callbacks / timers / event
   monitors hop in with `MainActor.assumeIsolated`.
@@ -30,7 +29,7 @@ it off. Code comments in English; the user prefers to talk in Chinese.
 | `AX.swift` | AX helpers, private `_AXUIElementGetWindow` (via `@_silgen_name`), `Coords` (AX top-left ↔ AppKit bottom-left) |
 | `WindowTracker.swift` | One `AXObserver` per regular app; `[CGWindowID: Win]`; `topWindow(at:excluding:)` via `CGWindowListCopyWindowInfo` z-order |
 | `DragController.swift` | `NSEvent` global monitors; detects a title-bar drag via WindowServer bounds (`Win.serverFrame`; AX position lags mid-drag) and moves the strip with that frame (`GroupManager.dragMoved`); middle zone = target inset 25%; dwell 0.35 s / slop 12 px → `DropHighlight`; mouse-up → `GroupManager.join`. Grouping only while the drag key (`DragKey`, ⌘ by default) is held. Drag key + press anywhere in a window: an active `CGEventTap` swallows the press and moves the window by AX; a press that doesn't move > 3 px is replayed as a click |
-| `GroupManager.swift` | `TabGroup` model (frame includes the 34 px strip). select = set the frame + raise the shown tab, **park** the others (move to the bottom-right corner, 1 px visible, same size). Follows the shown tab when the user moves/resizes it (strip follows live). Ignores our own AX writes for 0.5 s. Ungroups everything on quit. |
+| `GroupManager.swift` | `TabGroup` model (frame includes the 34 px strip). All tabs share `windowFrame`; select = raise the shown tab (nothing moves); `layout` → `stack` puts the hidden ones back in the frame. While the shown tab is dragged/resized the hidden ones are **parked** (bottom-right corner, 1 px visible) and re-stacked when it settles. On app activation the tab that ended up on top becomes the shown one. Ignores our own AX writes for 0.5 s. Ungroups everything on quit. |
 | `TabStrip.swift` | `TabStripPanel`: borderless non-activating `NSPanel`, `.normal` level, `order(.above, relativeTo: activeWindowID)`. `TabStripView`: draw, hover ✕, drag to reorder, drag beyond 24 px → torn (`TabChip` follows the pointer) |
 | `Settings.swift` | `SettingsWindow`: the app's only window (Liquid Glass via `NSGlassEffectView` on macOS 26+), shown on open/reopen but not on a login launch; *Drag key* (`UserDefaults` `dragKey`: ⌘ ⌥ ⌃ fn), *Launch at login*, *Show in Dock* (`UserDefaults` `showInDock` → activation policy), *Quit* |
 | `Support/AppIcon.icon` | Icon Composer file (open it in Icon Composer to edit): three SVG layers on a 1024 canvas (back window, dark tab strip, front window) with Liquid Glass. `make-app.sh` compiles it with `actool` (needs Xcode) into `Assets.car` + a fallback `AppIcon.icns` |
@@ -45,4 +44,4 @@ it off. Code comments in English; the user prefers to talk in Chinese.
 5. Persist groups (bundle ID + title matching) and restore them on launch.
 6. Optional: ScreenCaptureKit thumbnail of the tab under the pointer while it's being dragged.
 
-Never leave windows parked: every exit path must call `GroupManager.ungroupAll()`.
+Never leave windows parked or stacked: every exit path must call `GroupManager.ungroupAll()`.

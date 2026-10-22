@@ -6,7 +6,7 @@ enum Style {
 }
 
 /// Several windows (from any apps) sharing one frame under one strip.
-/// Only `active` is on screen; the rest are parked out of view.
+/// `active` is shown; the rest wait right behind it, in the same frame.
 @MainActor
 final class TabGroup {
     var tabs: [CGWindowID]
@@ -14,6 +14,8 @@ final class TabGroup {
     /// The whole group, strip included, in AX coordinates.
     var frame: CGRect
     let strip: TabStripPanel
+    /// The hidden tabs are out of view while the shown one is dragged or resized.
+    var parked = false
 
     init(tabs: [CGWindowID], active: CGWindowID, frame: CGRect, strip: TabStripPanel) {
         self.tabs = tabs
@@ -97,18 +99,9 @@ final class GroupManager {
     func select(_ id: CGWindowID, in g: TabGroup) {
         guard let w = tracker.windows[id] else { return }
         g.active = id
-        // Resize while still parked, out of sight.
-        if let f = w.frame, f.size != g.windowFrame.size {
-            place(w, CGRect(origin: f.origin, size: g.windowFrame.size))
-        }
-        // While two windows share the spot their shadows stack and the edges
-        // visibly darken: swap them with nothing else in between.
-        let spot = parkSpot(in: g)
-        let others = g.tabs.filter { $0 != id }.compactMap { tracker.windows[$0] }
-        moveTogether([(w, g.windowFrame.origin)] + others.map { ($0, spot) })
-        // A window that wasn't parked (just dropped on the group) had its size
-        // clamped to the screen where it was: size it again now it's in place.
-        if let f = w.frame, f.size != g.windowFrame.size { place(w, g.windowFrame) }
+        // The tabs share one frame, so switching is a raise: nothing moves.
+        // (Only a window just dropped on the group isn't in place yet.)
+        if w.frame != g.windowFrame { place(w, g.windowFrame) }
         w.raise()
         layout(g)
         reorderStrip(g)
@@ -181,11 +174,27 @@ final class GroupManager {
         w.setFrame(r)
     }
 
-    /// "Park" = move a window so only one pixel is left on screen, in a
-    /// corner with no neighbouring display. Same trick as AeroSpace, and what
-    /// TrellisWM's "Park windows out of view" setting refers to. Unlike
-    /// minimising or hiding the app it has no animation, keeps the app's
-    /// other windows alone, and the window stays live.
+    /// The hidden tabs wait right behind the shown one, in the same frame:
+    /// Mission Control shows them as they are, and switching moves nothing.
+    /// (Parked off screen instead, Mission Control shrinks every thumbnail
+    /// to fit them, and swapping two windows flickers their shadows.)
+    private func stack(_ g: TabGroup) {
+        g.parked = false
+        for id in g.tabs where id != g.active {
+            if let w = tracker.windows[id], w.frame != g.windowFrame { place(w, g.windowFrame) }
+        }
+    }
+
+    /// While the shown tab is dragged or resized the ones behind it would
+    /// show: park them until it settles, one pixel left on screen in a corner
+    /// with no neighbouring display (AeroSpace's trick).
+    private func parkHidden(_ g: TabGroup) {
+        guard !g.parked else { return }
+        g.parked = true
+        let spot = parkSpot(in: g)
+        moveTogether(g.tabs.filter { $0 != g.active }.compactMap { tracker.windows[$0] }.map { ($0, spot) })
+    }
+
     private func parkSpot(in g: TabGroup) -> CGPoint {
         let size = g.windowFrame.size
         let screen = Coords.screenFrame(containing: g.frame)
@@ -226,6 +235,7 @@ final class GroupManager {
             g.frame.origin.y = visible.minY
             if let w = tracker.windows[g.active] { place(w, g.windowFrame) }
         }
+        stack(g)
         refreshTabs(g)
         g.strip.show(at: g.stripFrame, above: g.active)
     }
@@ -250,6 +260,7 @@ final class GroupManager {
         }
         if let until = ignoreUntil[w.id], until > Date() { return }
         guard w.id != liveDrag, let g = group(of: w.id), g.active == w.id, let f = w.frame else { return }
+        if NSEvent.pressedMouseButtons & 1 != 0 { parkHidden(g) }
         if f.size != g.windowFrame.size {
             if NSEvent.pressedMouseButtons & 1 != 0 { userResized = true }
             else if !userResized { followTile(g, w, f); return }
@@ -269,6 +280,7 @@ final class GroupManager {
     /// tile out also restores its old size here.)
     func dragMoved(_ id: CGWindowID, frame f: CGRect) {
         guard let g = group(of: id), g.active == id else { return }
+        parkHidden(g)
         liveDrag = id
         fit(g, to: f)
         g.strip.setFrame(Coords.toAppKit(g.stripFrame), display: true)
@@ -340,8 +352,28 @@ extension GroupManager: WindowTrackerDelegate {
         if g.active == w.id {
             reorderStrip(g)
         } else {
-            // ⌘` or the app itself brought a parked tab forward: switch to it.
+            // ⌘` or the app itself brought a hidden tab forward: switch to it.
             select(w.id, in: g)
+        }
+    }
+
+    /// Activating an app (⌘Tab, the Dock) can bring all its windows forward,
+    /// hidden tabs included, without focusing them: the group then shows
+    /// whichever tab ended up on top.
+    func appActivated() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, !self.groups.isEmpty,
+                      let list = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]]
+                else { return }
+                let order = list.compactMap { ($0[kCGWindowNumber as String] as? Int).map { CGWindowID($0) } }
+                for g in self.groups where !g.parked {
+                    guard let top = order.first(where: g.tabs.contains), top != g.active else { continue }
+                    g.active = top
+                    self.refreshTabs(g)
+                    self.reorderStrip(g)
+                }
+            }
         }
     }
 
