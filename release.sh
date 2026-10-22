@@ -28,6 +28,6 @@ ditto -c -k --keepParent build/TabGroups.app "$ZIP"
 
 git add "$PLIST" appcast.xml
 git commit -m "Release $VERSION"
-gh release create "v$VERSION" "$ZIP" --title "TabGroups $VERSION" --generate-notes
 git push origin HEAD:main
+gh release create "v$VERSION" "$ZIP" --target "$(git rev-parse HEAD)" --title "TabGroups $VERSION" --generate-notes
 echo "Released $VERSION (build $BUILD)"
