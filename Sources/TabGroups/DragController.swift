@@ -10,8 +10,6 @@ enum DragKey: String, CaseIterable {
         set { UserDefaults.standard.set(newValue.rawValue, forKey: "dragKey") }
     }
 
-    static var isDown: Bool { CGEventSource.flagsState(.combinedSessionState).contains(current.flag) }
-
     var flag: CGEventFlags {
         switch self {
         case .command: .maskCommand
@@ -58,6 +56,10 @@ final class DragController {
     private var armed = false
 
     private var tap: CFMachPort?
+    /// Taken from the event stream: the polled modifier state
+    /// (`CGEventSource.flagsState`) drops it for a moment when a dragged
+    /// window crosses to another display.
+    private var keyHeld = false
     /// Pointer offset into the window being moved with the drag key.
     private var grab: CGPoint?
     private var pressPoint: CGPoint = .zero
@@ -90,7 +92,7 @@ final class DragController {
         // Presses with the drag key go through an active tap instead: the
         // app under the pointer must not see them. (Swallowed events never
         // reach the monitors above.)
-        let mask = [CGEventType.leftMouseDown, .leftMouseDragged, .leftMouseUp]
+        let mask = [CGEventType.leftMouseDown, .leftMouseDragged, .leftMouseUp, .flagsChanged]
             .reduce(CGEventMask(0)) { $0 | 1 << $1.rawValue }
         tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap, options: .defaultTap,
                                 eventsOfInterest: mask, callback: tapCallback,
@@ -102,6 +104,9 @@ final class DragController {
     /// Returns false to swallow the event.
     fileprivate func handleTap(_ type: CGEventType, _ event: CGEvent) -> Bool {
         if event.getIntegerValueField(.eventSourceUserData) == Self.replayTag { return true }
+        if type != .tapDisabledByTimeout && type != .tapDisabledByUserInput {
+            keyHeld = event.flags.contains(DragKey.current.flag)
+        }
         switch type {
         case .tapDisabledByTimeout, .tapDisabledByUserInput:
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
@@ -205,7 +210,7 @@ final class DragController {
     }
 
     private func mouseUp() {
-        let go = moving && armed && DragKey.isDown
+        let go = moving && armed && keyHeld
         let src: Win? = go ? source : nil
         let dst: Win? = go ? target : nil
         reset()
@@ -218,7 +223,7 @@ final class DragController {
 
     private func evaluate() {
         guard moving, let src = source else { return }
-        guard DragKey.isDown else { disarm(); return }
+        guard keyHeld else { disarm(); return }
         let p = Coords.cursor()
         let sourceTabs = Set(groups.group(of: src.id)?.tabs ?? [src.id])
 
