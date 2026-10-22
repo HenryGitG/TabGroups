@@ -70,7 +70,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        // Never leave windows parked in a corner.
+        // Never leave windows parked in a corner; bring the groups back next time.
+        groups.save()
         groups.ungroupAll()
     }
 
@@ -80,6 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         tracker.delegate = groups
         tracker.start()
         drags.start()
+        groups.restore()
     }
 
     /// Only on screen with the Dock icon shown, but its shortcuts work either way.

@@ -167,6 +167,73 @@ final class GroupManager {
         g.strip.orderOut(nil)
     }
 
+    // MARK: Across restarts
+
+    private struct SavedGroup: Codable {
+        struct Tab: Codable {
+            var id: CGWindowID
+            var bundleID: String?
+            var title: String
+            var sizeBeforeGrouping: CGSize?
+        }
+        var tabs: [Tab]
+        var active: Int
+        var frame: CGRect
+    }
+
+    private static let savedKey = "savedGroups"
+
+    /// On quit (before `ungroupAll`), so an update or a restart brings the
+    /// groups back. Not on "Ungroup all": that's meant.
+    func save() {
+        let saved = groups.map { g in
+            SavedGroup(tabs: g.tabs.compactMap { id in
+                tracker.windows[id].map {
+                    SavedGroup.Tab(id: id, bundleID: NSRunningApplication(processIdentifier: $0.pid)?.bundleIdentifier,
+                                   title: $0.title, sizeBeforeGrouping: sizeBeforeGrouping[id])
+                }
+            }, active: g.tabs.firstIndex(of: g.active) ?? 0, frame: g.frame)
+        }
+        UserDefaults.standard.set(try? JSONEncoder().encode(saved), forKey: Self.savedKey)
+    }
+
+    /// The other apps kept running while we restarted, so their windows
+    /// still have the same IDs. One that doesn't (its app restarted too) is
+    /// looked up by app and title, if that's unambiguous.
+    func restore() {
+        guard let data = UserDefaults.standard.data(forKey: Self.savedKey),
+              let saved = try? JSONDecoder().decode([SavedGroup].self, from: data) else { return }
+        UserDefaults.standard.removeObject(forKey: Self.savedKey)
+        func bundle(_ w: Win) -> String? { NSRunningApplication(processIdentifier: w.pid)?.bundleIdentifier }
+        var used = Set<CGWindowID>()
+        func find(_ t: SavedGroup.Tab) -> Win? {
+            if let w = tracker.windows[t.id], !used.contains(w.id), bundle(w) == t.bundleID { return w }
+            let same = tracker.windows.values.filter { !used.contains($0.id) && bundle($0) == t.bundleID && $0.title == t.title }
+            return same.count == 1 ? same[0] : nil
+        }
+
+        let front = NSWorkspace.shared.frontmostApplication
+        for s in saved {
+            var tabs: [CGWindowID] = []
+            var active: CGWindowID?
+            for (i, t) in s.tabs.enumerated() {
+                guard let w = find(t) else { continue }
+                used.insert(w.id)
+                tabs.append(w.id)
+                if let size = t.sizeBeforeGrouping { sizeBeforeGrouping[w.id] = size }
+                if i == s.active { active = w.id }
+            }
+            guard tabs.count >= 2 else { continue }
+            let strip = TabStripPanel()
+            strip.stripDelegate = self
+            let g = TabGroup(tabs: tabs, active: active ?? tabs[0], frame: s.frame, strip: strip)
+            groups.append(g)
+            select(g.active, in: g)
+        }
+        // Showing each group's tab activated its app: give focus back.
+        front?.activate()
+    }
+
     // MARK: Placement
 
     private func place(_ w: Win, _ r: CGRect) {

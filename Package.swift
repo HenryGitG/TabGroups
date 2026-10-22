@@ -12,8 +12,10 @@ let package = Package(
             name: "TabGroups",
             dependencies: [.product(name: "Sparkle", package: "Sparkle")],
             path: "Sources/TabGroups",
-            // The app bundle keeps Sparkle.framework in Contents/Frameworks.
-            linkerSettings: [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])]
+            // Sparkle.framework: in Contents/Frameworks of the app bundle,
+            // next to the binary for `swift run`.
+            linkerSettings: [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks",
+                                           "-Xlinker", "-rpath", "-Xlinker", "@executable_path"])]
         )
     ]
 )
