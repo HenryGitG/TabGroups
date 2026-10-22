@@ -1,9 +1,10 @@
 import AppKit
+import ApplicationServices
 
 /// The app's only window: shown when TabGroups is opened (not when it starts
 /// at login), and again whenever it's reopened from Finder or the Dock.
 @MainActor
-final class SettingsWindow: NSObject {
+final class SettingsWindow: NSObject, NSWindowDelegate {
     static var showInDock: Bool {
         get { UserDefaults.standard.bool(forKey: "showInDock") }
         set { UserDefaults.standard.set(newValue, forKey: "showInDock") }
@@ -16,6 +17,7 @@ final class SettingsWindow: NSObject {
     private let loginBox = NSButton(checkboxWithTitle: "Launch at login", target: nil, action: nil)
     private let dockBox = NSButton(checkboxWithTitle: "Show in Dock", target: nil, action: nil)
     private let keyPopup = NSPopUpButton()
+    private let axStatus = NSTextField(labelWithString: "")
     private lazy var window = makeWindow()
 
     func show() {
@@ -29,6 +31,11 @@ final class SettingsWindow: NSObject {
         loginBox.isEnabled = LoginItem.isAvailable
         dockBox.state = Self.showInDock ? .on : .off
         keyPopup.selectItem(at: DragKey.allCases.firstIndex(of: DragKey.current) ?? 0)
+        let trusted = AXIsProcessTrusted()
+        axStatus.stringValue = trusted ? "✓ Accessibility allowed" : "⚠︎ Accessibility not allowed"
+        axStatus.textColor = trusted ? .secondaryLabelColor : .systemOrange
+        // A rebuilt (re-signed) app stays ticked in the list but isn't trusted.
+        axStatus.toolTip = trusted ? nil : "Already ticked? Remove TabGroups from the list and add it again."
     }
 
     @objc private func toggleLogin() {
@@ -41,6 +48,14 @@ final class SettingsWindow: NSObject {
         Self.applyDockPolicy()
         // Leaving the Dock deactivates the app; keep this window in front.
         DispatchQueue.main.async { MainActor.assumeIsolated { self.show() } }
+    }
+
+    /// Back from System Settings: the grant may have changed.
+    func windowDidBecomeKey(_ notification: Notification) { refresh() }
+
+    @objc private func openAccessibility() {
+        NSWorkspace.shared.open(URL(string:
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
     }
 
     @objc private func pickKey() {
@@ -57,6 +72,8 @@ final class SettingsWindow: NSObject {
         keyPopup.target = self
         keyPopup.action = #selector(pickKey)
         let keyRow = NSStackView(views: [NSTextField(labelWithString: "Drag key:"), keyPopup])
+        let axRow = NSStackView(views: [axStatus, NSButton(title: "Open Settings…", target: self,
+                                                           action: #selector(openAccessibility))])
 
         let hint = NSTextField(wrappingLabelWithString:
             "Hold the drag key to move a window by any spot. Drag it onto the middle of another, "
@@ -64,13 +81,14 @@ final class SettingsWindow: NSObject {
         hint.textColor = .secondaryLabelColor
         hint.widthAnchor.constraint(equalToConstant: 300).isActive = true
         let quit = NSButton(title: "Quit TabGroups", target: NSApp, action: #selector(NSApplication.terminate(_:)))
-        let rows: [NSView] = [hint, keyRow, loginBox, dockBox, quit]
+        let rows: [NSView] = [hint, axRow, keyRow, loginBox, dockBox, quit]
 
         let stack = NSStackView(views: rows)
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 12
         stack.setCustomSpacing(20, after: hint)
+        stack.setCustomSpacing(16, after: axRow)
         stack.setCustomSpacing(16, after: keyRow)
         stack.setCustomSpacing(20, after: dockBox)
         // The content runs under the transparent title bar: leave room for it.
@@ -82,6 +100,7 @@ final class SettingsWindow: NSObject {
         w.titlebarAppearsTransparent = true
         w.isMovableByWindowBackground = true
         w.isReleasedWhenClosed = false
+        w.delegate = self
         let size = NSSize(width: 340, height: stack.fittingSize.height)
         if #available(macOS 26, *) {
             // Liquid Glass: the whole window is one pane of glass.
