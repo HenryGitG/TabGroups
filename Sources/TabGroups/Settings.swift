@@ -58,6 +58,8 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
             "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
     }
 
+    @objc private func checkForUpdates() { Updates.shared.check() }
+
     @objc private func pickKey() {
         DragKey.current = DragKey.allCases[keyPopup.indexOfSelectedItem]
     }
@@ -81,7 +83,11 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         hint.textColor = .secondaryLabelColor
         hint.widthAnchor.constraint(equalToConstant: 300).isActive = true
         let quit = NSButton(title: "Quit TabGroups", target: NSApp, action: #selector(NSApplication.terminate(_:)))
-        let rows: [NSView] = [hint, axRow, keyRow, loginBox, dockBox, quit]
+        let updates = NSButton(title: "Check for Updates…", target: self, action: #selector(checkForUpdates))
+        let version = NSTextField(labelWithString: "Version \(Updates.current)")
+        version.textColor = .secondaryLabelColor
+        let bottomRow = NSStackView(views: [quit, updates, version])
+        let rows: [NSView] = [hint, axRow, keyRow, loginBox, dockBox, bottomRow]
 
         let stack = NSStackView(views: rows)
         stack.orientation = .vertical

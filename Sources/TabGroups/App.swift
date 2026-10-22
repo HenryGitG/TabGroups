@@ -45,6 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         handleSignals()
         setUpMenu()
+        Updates.shared.start()
         if !launchedAtLogin { settings.show() }
 
         let prompt = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
@@ -85,6 +86,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setUpMenu() {
         let appMenu = NSMenu()
         appMenu.addItem(withTitle: "Settings…", action: #selector(showSettings), keyEquivalent: ",").target = self
+        appMenu.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "").target = self
         appMenu.addItem(withTitle: "Close Window", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Quit TabGroups", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -95,6 +97,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func showSettings() { settings.show() }
+    @objc private func checkForUpdates() { Updates.shared.check() }
 
     /// Ctrl-C from `swift run` skips applicationWillTerminate; route it through terminate.
     private func handleSignals() {

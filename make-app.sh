@@ -10,6 +10,8 @@ APP=build/TabGroups.app
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/TabGroups "$APP/Contents/MacOS/"
+mkdir -p "$APP/Contents/Frameworks"
+ditto .build/release/Sparkle.framework "$APP/Contents/Frameworks/Sparkle.framework"
 cp Support/Info.plist "$APP/Contents/"
 # The icon is an Icon Composer file (Liquid Glass layers). actool ships with
 # Xcode, not the command-line tools; without it the app keeps a generic icon.
@@ -26,6 +28,14 @@ fi
 # System Settings > Privacy & Security > Accessibility. Sign with a real
 # identity to keep the grant across rebuilds:
 #   SIGN_IDENTITY="Apple Development: you@example.com" ./make-app.sh
-codesign --force --sign "${SIGN_IDENTITY:--}" "$APP"
+ID="${SIGN_IDENTITY:--}"
+# Sparkle's helpers first, inside out (as Sparkle's docs list them).
+SPK="$APP/Contents/Frameworks/Sparkle.framework"
+codesign -f -s "$ID" -o runtime "$SPK/Versions/B/XPCServices/Installer.xpc"
+codesign -f -s "$ID" -o runtime --preserve-metadata=entitlements "$SPK/Versions/B/XPCServices/Downloader.xpc"
+codesign -f -s "$ID" -o runtime "$SPK/Versions/B/Autoupdate"
+codesign -f -s "$ID" -o runtime "$SPK/Versions/B/Updater.app"
+codesign -f -s "$ID" -o runtime "$SPK"
+codesign --force --sign "$ID" "$APP"
 
 echo "Built $APP  ->  open $APP"
