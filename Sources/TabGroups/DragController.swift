@@ -60,6 +60,9 @@ final class DragController {
     /// (`CGEventSource.flagsState`) drops it for a moment when a dragged
     /// window crosses to another display.
     private var keyHeld = false
+    /// Also from the event stream: while the tap swallows a drag,
+    /// `NSEvent.mouseLocation` stays where the button went down.
+    private var pointer: CGPoint = .zero
     /// Pointer offset into the window being moved with the drag key.
     private var grab: CGPoint?
     private var pressPoint: CGPoint = .zero
@@ -106,6 +109,7 @@ final class DragController {
         if event.getIntegerValueField(.eventSourceUserData) == Self.replayTag { return true }
         if type != .tapDisabledByTimeout && type != .tapDisabledByUserInput {
             keyHeld = event.flags.contains(DragKey.current.flag)
+            pointer = event.location
         }
         switch type {
         case .tapDisabledByTimeout, .tapDisabledByUserInput:
@@ -224,7 +228,7 @@ final class DragController {
     private func evaluate() {
         guard moving, let src = source else { return }
         guard keyHeld else { disarm(); return }
-        let p = Coords.cursor()
+        let p = pointer
         let sourceTabs = Set(groups.group(of: src.id)?.tabs ?? [src.id])
 
         var candidate: Win?
