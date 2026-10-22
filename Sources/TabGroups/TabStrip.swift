@@ -56,9 +56,10 @@ final class TabStripPanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 
-    func update(items: [TabItem], active: CGWindowID) {
+    func update(items: [TabItem], active: CGWindowID, hints: Bool) {
         tabsView.items = items
         tabsView.active = active
+        tabsView.hints = hints
         tabsView.needsDisplay = true
     }
 
@@ -86,6 +87,7 @@ final class TabStripView: NSView {
     weak var owner: TabStripPanel?
     var items: [TabItem] = []
     var active: CGWindowID = 0
+    var hints = true
 
     private var hovered: Int?
     private var pressedID: CGWindowID?
@@ -116,7 +118,7 @@ final class TabStripView: NSView {
 
     private func closeRect(_ i: Int) -> NSRect {
         let r = tabRect(i)
-        return NSRect(x: r.maxX - 20, y: r.midY - 7, width: 14, height: 14)
+        return NSRect(x: r.minX + 6, y: r.midY - 7, width: 14, height: 14)
     }
 
     private func index(at p: NSPoint) -> Int? {
@@ -179,13 +181,26 @@ final class TabStripView: NSView {
                 .foregroundColor: NSColor.white.withAlphaComponent(isActive ? 1 : 0.58),
                 .paragraphStyle: para,
             ]
+            // Ghostty's shortcut hint on the right; ✕ on the left on hover.
+            var room = r.insetBy(dx: 8, dy: 0)
+            if showClose { room.origin.x += 18; room.size.width -= 18 }
+            if let hint = shortcut(i) {
+                let hintAttrs: [NSAttributedString.Key: Any] = [
+                    .font: NSFont.systemFont(ofSize: 12, weight: .medium),
+                    .foregroundColor: NSColor.white.withAlphaComponent(isActive ? 0.6 : 0.38),
+                ]
+                let w = (hint as NSString).size(withAttributes: hintAttrs).width
+                if room.width > w + 60 {
+                    (hint as NSString).draw(at: NSPoint(x: room.maxX - w, y: r.midY - 8), withAttributes: hintAttrs)
+                    room.size.width -= w + 6
+                }
+            }
             // Centre icon + title; the title truncates once the tab is too narrow.
             let iconSize: CGFloat = 16, spacing: CGFloat = 7
-            let room = r.insetBy(dx: 8, dy: 0)
-            let roomRight = room.maxX - (showClose ? 20 : 0)
             let titleW = min((item.title as NSString).size(withAttributes: attrs).width,
-                             max(0, roomRight - room.minX - iconSize - spacing))
-            let x = max(room.minX, r.midX - (iconSize + spacing + titleW) / 2)
+                             max(0, room.width - iconSize - spacing))
+            let x = min(max(room.minX, r.midX - (iconSize + spacing + titleW) / 2),
+                        room.maxX - iconSize - spacing - titleW)
             item.icon?.draw(in: NSRect(x: x, y: r.midY - iconSize / 2, width: iconSize, height: iconSize))
             (item.title as NSString).draw(with: NSRect(x: x + iconSize + spacing, y: r.midY - 8, width: titleW, height: 16),
                                           options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine],
@@ -198,6 +213,11 @@ final class TabStripView: NSView {
                 ("✕" as NSString).draw(in: closeRect(i).insetBy(dx: 2, dy: 0), withAttributes: x)
             }
         }
+    }
+
+    /// ⌘1…⌘8, and ⌘9 for the last tab (see `DragController.switchTab`).
+    private func shortcut(_ i: Int) -> String? {
+        !hints ? nil : i < 8 ? "⌘\(i + 1)" : i == items.count - 1 ? "⌘9" : nil
     }
 
     // MARK: Mouse

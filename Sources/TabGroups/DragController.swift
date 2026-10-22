@@ -95,7 +95,7 @@ final class DragController {
         // Presses with the drag key go through an active tap instead: the
         // app under the pointer must not see them. (Swallowed events never
         // reach the monitors above.)
-        let mask = [CGEventType.leftMouseDown, .leftMouseDragged, .leftMouseUp, .flagsChanged]
+        let mask = [CGEventType.leftMouseDown, .leftMouseDragged, .leftMouseUp, .flagsChanged, .keyDown]
             .reduce(CGEventMask(0)) { $0 | 1 << $1.rawValue }
         tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap, options: .defaultTap,
                                 eventsOfInterest: mask, callback: tapCallback,
@@ -107,6 +107,7 @@ final class DragController {
     /// Returns false to swallow the event.
     fileprivate func handleTap(_ type: CGEventType, _ event: CGEvent) -> Bool {
         if event.getIntegerValueField(.eventSourceUserData) == Self.replayTag { return true }
+        if type == .keyDown { return !switchTab(event) }
         if type != .tapDisabledByTimeout && type != .tapDisabledByUserInput {
             keyHeld = event.flags.contains(DragKey.current.flag)
             pointer = event.location
@@ -136,6 +137,26 @@ final class DragController {
         default:
             return true
         }
+    }
+
+    /// ANSI key codes of 1…9 (physical keys, so it works on any layout).
+    private static let digitKeys: [Int64] = [18, 19, 20, 21, 23, 22, 26, 28, 25]
+
+    /// ⌘1…⌘8 show that tab of the focused window's group, ⌘9 the last one
+    /// (as in Ghostty and browsers). Returns true when it was ours; a window
+    /// with its own tab bar keeps them for its own tabs.
+    private func switchTab(_ event: CGEvent) -> Bool {
+        let mods = event.flags.intersection([.maskCommand, .maskShift, .maskAlternate, .maskControl])
+        guard mods == .maskCommand,
+              let n = Self.digitKeys.firstIndex(of: event.getIntegerValueField(.keyboardEventKeycode)),
+              let id = groups.focused, let g = groups.group(of: id),
+              let w = tracker.windows[id], !AX.hasOwnTabs(w.element) else { return false }
+        let i = n == 8 ? g.tabs.count - 1 : n
+        // Out of range or held down: still ours, the app's own ⌘N would confuse.
+        if i < g.tabs.count, event.getIntegerValueField(.keyboardEventAutorepeat) == 0, g.tabs[i] != g.active {
+            groups.select(g.tabs[i], in: g)
+        }
+        return true
     }
 
     /// A press with the drag key on a tracked window: we'll move it ourselves.

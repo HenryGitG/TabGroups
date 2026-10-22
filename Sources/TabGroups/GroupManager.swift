@@ -51,6 +51,8 @@ final class GroupManager {
     /// Since the last settle, the shown tab's size changed while a mouse
     /// button was held: the user is resizing it, not the system.
     private var userResized = false
+    /// The focused window of the active app, if we track it (for ⌘1…⌘9).
+    private(set) var focused: CGWindowID?
 
     init(tracker: WindowTracker) {
         self.tracker = tracker
@@ -311,7 +313,9 @@ final class GroupManager {
         let items = g.tabs.compactMap { id in
             tracker.windows[id].map { TabItem(id: id, title: $0.title, icon: $0.icon) }
         }
-        g.strip.update(items: items, active: g.active)
+        // ⌘N goes to the shown tab's own tabs then: no hints.
+        let hints = tracker.windows[g.active].map { !AX.hasOwnTabs($0.element) } ?? true
+        g.strip.update(items: items, active: g.active, hints: hints)
     }
 
     /// The user moved or resized the shown tab: the group follows it.
@@ -415,6 +419,7 @@ extension GroupManager: WindowTrackerDelegate {
     }
 
     func windowFocused(_ w: Win) {
+        focused = w.id
         guard let g = group(of: w.id) else { return }
         if g.active == w.id {
             reorderStrip(g)
@@ -425,6 +430,7 @@ extension GroupManager: WindowTrackerDelegate {
     }
 
     func focusMoved() {
+        focused = nil   // windowFocused follows when a tracked window has focus
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
             MainActor.assumeIsolated {
                 guard let self, !self.groups.isEmpty,

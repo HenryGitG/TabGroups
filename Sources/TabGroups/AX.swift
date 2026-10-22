@@ -31,6 +31,16 @@ enum AX {
         (attr(el, name) as? [AXUIElement]) ?? []
     }
 
+    /// The window shows a tab bar of its own with 2+ tabs (native window
+    /// tabs: Ghostty, Safari, Finder…). Browsers that draw their own tabs
+    /// don't expose one here.
+    static func hasOwnTabs(_ window: AXUIElement) -> Bool {
+        elements(window, kAXChildrenAttribute).contains { el in
+            string(el, kAXRoleAttribute) == kAXTabGroupRole
+                && elements(el, kAXChildrenAttribute).filter { string($0, kAXRoleAttribute) == kAXRadioButtonRole }.count > 1
+        }
+    }
+
     static func set(_ el: AXUIElement, _ name: String, _ value: CFTypeRef) {
         AXUIElementSetAttributeValue(el, name as CFString, value)
     }
