@@ -357,16 +357,30 @@ extension GroupManager: WindowTrackerDelegate {
         }
     }
 
-    /// Activating an app (⌘Tab, the Dock) can bring all its windows forward,
-    /// hidden tabs included, without focusing them: the group then shows
-    /// whichever tab ended up on top.
-    func appActivated() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+    func focusMoved() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
             MainActor.assumeIsolated {
                 guard let self, !self.groups.isEmpty,
                       let list = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]]
                 else { return }
                 let order = list.compactMap { ($0[kCGWindowNumber as String] as? Int).map { CGWindowID($0) } }
+                let onScreen = Set(order)
+                // ⌘W often only hides a window (apps that stay open with no
+                // windows, the last in-window tab of a browser): it's closed
+                // as far as the group goes. Not when the app is hidden (⌘H),
+                // nor when the whole group is off screen (another Space).
+                for g in self.groups where !g.parked && g.tabs.contains(where: onScreen.contains) {
+                    for id in g.tabs where !onScreen.contains(id) {
+                        guard self.groups.contains(where: { $0 === g }),   // not dissolved meanwhile
+                              let w = self.tracker.windows[id],
+                              NSRunningApplication(processIdentifier: w.pid)?.isHidden == false,
+                              AX.bool(w.element, kAXMinimizedAttribute) != true else { continue }
+                        self.remove(id, from: g)
+                    }
+                }
+                // Activating an app (⌘Tab, the Dock) can bring all its windows
+                // forward, hidden tabs included, without focusing them: the
+                // group then shows whichever tab ended up on top.
                 for g in self.groups where !g.parked {
                     guard let top = order.first(where: g.tabs.contains), top != g.active else { continue }
                     g.active = top

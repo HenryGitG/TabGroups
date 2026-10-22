@@ -62,7 +62,8 @@ protocol WindowTrackerDelegate: AnyObject {
     func windowTitleChanged(_ w: Win)
     func windowFocused(_ w: Win)
     func windowMinimized(_ w: Win)
-    func appActivated()
+    /// An app was activated or focus moved to another window (or none).
+    func focusMoved()
 }
 
 /// Keeps an AXObserver per running app and a table of every standard window.
@@ -135,7 +136,7 @@ final class WindowTracker {
         let pid = app.processIdentifier
         watch(app)
         rescan(pid)
-        delegate?.appActivated()
+        delegate?.focusMoved()
         if let appEl = appElements[pid], let el = AX.element(appEl, kAXFocusedWindowAttribute),
            let w = win(for: el) { delegate?.windowFocused(w) }
     }
@@ -189,6 +190,7 @@ final class WindowTracker {
             add(el, pid: pid)
 
         case kAXFocusedWindowChangedNotification:
+            delegate?.focusMoved()
             var focused = el
             if AX.string(el, kAXRoleAttribute) == kAXApplicationRole,
                let f = AX.element(el, kAXFocusedWindowAttribute) { focused = f }
