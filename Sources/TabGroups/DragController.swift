@@ -114,8 +114,11 @@ final class DragController {
             return false
         case .leftMouseUp:
             guard grab != nil else { return true }
+            let window = source
+            let doubleClick = pressed?.getIntegerValueField(.mouseEventClickState) == 2
             let click = pressed.flatMap { down in event.copy().map { [down, $0] } }
             mouseUp()
+            if doubleClick, let window { titleBarDoubleClick(window); return false }
             for e in click ?? [] {
                 e.setIntegerValueField(.eventSourceUserData, value: Self.replayTag)
                 e.post(tap: .cgSessionEventTap)
@@ -156,6 +159,23 @@ final class DragController {
         AX.withoutEnhancedUI(w.appElement) { AX.setPosition(w.element, origin) }
         groups.dragMoved(w.id, frame: CGRect(origin: origin, size: start.size))
         evaluate()
+    }
+
+    /// Whatever double-clicking the title bar does
+    /// (System Settings ▸ Desktop & Dock).
+    private func titleBarDoubleClick(_ w: Win) {
+        let d = UserDefaults.standard
+        let action = d.string(forKey: "AppleActionOnDoubleClick")
+            ?? (d.bool(forKey: "AppleMiniaturizeOnDoubleClick") ? "Minimize" : "Maximize")
+        switch action {
+        case "Minimize": AX.set(w.element, kAXMinimizedAttribute, kCFBooleanTrue)
+        case "None": break
+        // ponytail: "Fill" zooms too (most apps zoom to the whole screen anyway);
+        // set the frame to the visible frame if that falls short.
+        default:
+            // Option-click on the green button. Reports an error but zooms.
+            if let b = AX.element(w.element, kAXZoomButtonAttribute) { AX.perform(b, "AXZoomWindow") }
+        }
     }
 
     private func startMoving() {
