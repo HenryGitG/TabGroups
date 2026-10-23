@@ -207,10 +207,12 @@ final class DragController {
     private func keyDown(_ event: CGEvent) -> Bool {
         guard event.flags.contains(DragKey.current.flag) else { return false }
         let p = event.location
-        // Our own strips and windows handle their own clicks.
+        // Our own strips and windows handle their own clicks. (Click-through
+        // ones, like the strip's shadow, don't count: this hit test doesn't
+        // skip them.)
         let n = NSWindow.windowNumber(at: NSPoint(x: p.x, y: Coords.primaryHeight - p.y),
                                       belowWindowWithWindowNumber: 0)
-        guard NSApp.window(withWindowNumber: n) == nil,
+        guard NSApp.window(withWindowNumber: n).map({ $0.ignoresMouseEvents }) ?? true,
               let w = tracker.topWindow(at: p), let f = w.frame else { return false }
         reset()
         source = w

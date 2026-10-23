@@ -332,6 +332,10 @@ private final class StripShadow: NSPanel {
         contentView = ShadowView()
     }
 
+    /// It reaches up into the menu bar when the group is at the top of the
+    /// screen; AppKit would push it down over the window under the strip.
+    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect { frameRect }
+
     func fit(under strip: NSRect) {
         setFrame(NSRect(x: strip.minX - Self.pad, y: strip.minY,
                         width: strip.width + Self.pad * 2, height: strip.height + Self.pad), display: true)
