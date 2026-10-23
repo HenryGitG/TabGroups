@@ -301,7 +301,11 @@ final class GroupManager {
     private func layout(_ g: TabGroup) {
         let visible = Coords.visibleFrame(containing: g.frame)
         if g.frame.minY < visible.minY {
+            let bottom = g.frame.maxY
             g.frame.origin.y = visible.minY
+            // A maximised window: the strip takes its room from the window,
+            // not from the Dock (a bottom already past it stays where it was).
+            g.frame.size.height = min(g.frame.height, max(visible.maxY, bottom) - visible.minY)
             if let w = tracker.windows[g.active] { place(w, g.windowFrame) }
         }
         stack(g)
