@@ -111,17 +111,26 @@ final class WindowTracker {
 
     // MARK: Apps
 
-    private func watch(_ app: NSRunningApplication) {
+    private func watch(_ app: NSRunningApplication, attempt: Int = 0) {
         let pid = app.processIdentifier
-        guard pid != getpid(), observers[pid] == nil, app.activationPolicy == .regular else { return }
+        guard pid != getpid(), observers[pid] == nil, !app.isTerminated, app.activationPolicy == .regular else { return }
 
         let appEl = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(appEl, 1.0) // a hung app must not hang us
 
         var created: AXObserver?
         guard AXObserverCreate(pid, axCallback, &created) == .success, let observer = created else { return }
-        for n in Self.appNotifications {
-            AXObserverAddNotification(observer, appEl, n as CFString, refcon)
+        let results = Self.appNotifications.map { AXObserverAddNotification(observer, appEl, $0 as CFString, refcon) }
+        // A launching app is activated before it answers AX (Electron apps
+        // for a second or so): watched now, it would never report its windows.
+        if results.contains(.cannotComplete) {
+            // ponytail: gives up after 10 s; the next activation tries again.
+            if attempt < 20 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                    MainActor.assumeIsolated { self?.watch(app, attempt: attempt + 1) }
+                }
+            }
+            return
         }
         CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .commonModes)
 
