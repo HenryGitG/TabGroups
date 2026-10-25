@@ -38,10 +38,9 @@ final class TabStripPanel: NSPanel {
         collectionBehavior = [.ignoresCycle, .transient]   // transient: hidden in Mission Control
         animationBehavior = .none
 
-        // Dark glass like TrellisWM's strip: blur behind, tinted in draw(_:).
+        // Adaptive glass: the tint and text in draw(_:) follow the system appearance.
         let fx = NSVisualEffectView()
-        fx.appearance = NSAppearance(named: .darkAqua)
-        fx.material = .hudWindow
+        fx.material = .headerView
         fx.blendingMode = .behindWindow
         fx.state = .active
         fx.maskImage = .roundedMask(radius: Style.cornerRadius)
@@ -99,6 +98,11 @@ final class TabStripView: NSView {
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
@@ -131,18 +135,18 @@ final class TabStripView: NSView {
 
     // MARK: Drawing
 
-    /// TrellisWM's strip: #282c28 at 74% over the blur, a 12% white hairline,
-    /// equal tabs with icon + title centred; the shown one gets a 14% white fill.
+    /// TrellisWM's translucent strip, adapted to the current system appearance.
     override func draw(_ dirtyRect: NSRect) {
+        let ink = NSColor.labelColor
         let outline = NSBezierPath(roundedRect: bounds, xRadius: Style.cornerRadius, yRadius: Style.cornerRadius)
-        NSColor(srgbRed: 40 / 255, green: 44 / 255, blue: 40 / 255, alpha: 0.74).setFill()
+        NSColor.windowBackgroundColor.withAlphaComponent(0.78).setFill()
         outline.fill()
-        NSColor.white.withAlphaComponent(0.12).setStroke()
+        ink.withAlphaComponent(0.14).setStroke()
         let r = Style.cornerRadius - 0.5
         NSBezierPath(roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5), xRadius: r, yRadius: r).stroke()
 
         // Dividers between tabs, left out next to a filled (shown or hovered) tab.
-        NSColor.white.withAlphaComponent(0.14).setFill()
+        ink.withAlphaComponent(0.14).setFill()
         for i in items.indices.dropFirst() {
             let filled = { (j: Int) in self.items[j].id == self.active || (self.hovered == j && !self.dragging) }
             if filled(i - 1) || filled(i) { continue }
@@ -157,14 +161,14 @@ final class TabStripView: NSView {
             let shape = NSBezierPath(roundedRect: r, xRadius: 7, yRadius: 7)
 
             if isActive {
-                NSColor.white.withAlphaComponent(0.14).setFill()
+                ink.withAlphaComponent(0.12).setFill()
                 shape.fill()
                 let edge = NSBezierPath(roundedRect: r.insetBy(dx: 0.25, dy: 0.25), xRadius: 6.75, yRadius: 6.75)
                 edge.lineWidth = 0.5
-                NSColor.white.withAlphaComponent(0.16).setStroke()
+                ink.withAlphaComponent(0.16).setStroke()
                 edge.stroke()
             } else if hovered == i && !dragging {
-                NSColor.white.withAlphaComponent(0.06).setFill()
+                ink.withAlphaComponent(0.06).setFill()
                 shape.fill()
             }
             if isPressed && torn { continue }   // the chip under the pointer carries it
@@ -178,7 +182,7 @@ final class TabStripView: NSView {
             para.lineBreakMode = .byTruncatingTail
             let attrs: [NSAttributedString.Key: Any] = [
                 .font: NSFont.systemFont(ofSize: 12.5, weight: .semibold),
-                .foregroundColor: NSColor.white.withAlphaComponent(isActive ? 1 : 0.58),
+                .foregroundColor: ink.withAlphaComponent(isActive ? 1 : 0.58),
                 .paragraphStyle: para,
             ]
             // Ghostty's shortcut hint on the right; ✕ on the left on hover.
@@ -187,7 +191,7 @@ final class TabStripView: NSView {
             if let hint = shortcut(i) {
                 let hintAttrs: [NSAttributedString.Key: Any] = [
                     .font: NSFont.systemFont(ofSize: 12, weight: .medium),
-                    .foregroundColor: NSColor.white.withAlphaComponent(isActive ? 0.6 : 0.38),
+                    .foregroundColor: ink.withAlphaComponent(isActive ? 0.6 : 0.38),
                 ]
                 let w = (hint as NSString).size(withAttributes: hintAttrs).width
                 if room.width > w + 60 {
@@ -208,7 +212,7 @@ final class TabStripView: NSView {
             if showClose {
                 let x: [NSAttributedString.Key: Any] = [
                     .font: NSFont.systemFont(ofSize: 10, weight: .bold),
-                    .foregroundColor: NSColor.white.withAlphaComponent(0.6),
+                    .foregroundColor: ink.withAlphaComponent(0.6),
                 ]
                 ("✕" as NSString).draw(in: closeRect(i).insetBy(dx: 2, dy: 0), withAttributes: x)
             }
@@ -267,11 +271,13 @@ final class TabStripView: NSView {
     override func menu(for event: NSEvent) -> NSMenu? {
         let menu = NSMenu()
         if let i = index(at: convert(event.locationInWindow, from: nil)) {
-            let item = menu.addItem(withTitle: "Remove from Group", action: #selector(removeFromGroup(_:)), keyEquivalent: "")
+            let item = menu.addItem(withTitle: L10n.text("tabs.remove_from_group", fallback: "Remove from Group"),
+                                    action: #selector(removeFromGroup(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = items[i].id
         }
-        menu.addItem(withTitle: "Ungroup All", action: #selector(ungroupAll), keyEquivalent: "").target = self
+        menu.addItem(withTitle: L10n.text("tabs.ungroup_all", fallback: "Ungroup All"),
+                     action: #selector(ungroupAll), keyEquivalent: "").target = self
         return menu
     }
 

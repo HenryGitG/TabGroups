@@ -1,0 +1,26 @@
+"settings.launch_at_login" = "登录时启动";
+"settings.show_in_dock" = "在程序坞中显示";
+"settings.accessibility_allowed" = "✓ 已获辅助功能权限";
+"settings.accessibility_not_allowed" = "⚠︎ 未获辅助功能权限";
+"settings.accessibility_tooltip" = "已经勾选？请从列表中移除 TabGroups，然后重新添加。";
+"settings.drag_key" = "拖移键：";
+"settings.switch_tabs" = "切换标签页：";
+"settings.open_system_settings" = "打开系统设置…";
+"settings.hint" = "按住拖移键即可从窗口任意位置移动窗口。继续按住该键，将窗口拖到另一个窗口中央并稍作停留，即可把它们堆叠到同一标签栏下。按下切换键和 1…9 可显示对应标签页（9 表示最后一个）。";
+"settings.quit" = "退出 TabGroups";
+"settings.check_for_updates" = "检查更新…";
+"settings.version" = "版本 %@";
+
+"menu.settings" = "设置…";
+"menu.check_for_updates" = "检查更新…";
+"menu.close_window" = "关闭窗口";
+"menu.quit" = "退出 TabGroups";
+
+"tabs.remove_from_group" = "移出分组";
+"tabs.ungroup_all" = "取消所有分组";
+
+"key.command" = "⌘ Command 键";
+"key.option" = "⌥ Option 键";
+"key.control" = "⌃ Control 键";
+"key.function" = "fn 键";
+"key.control_option" = "⌃⌥ Control-Option 键";

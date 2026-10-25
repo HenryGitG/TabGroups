@@ -1,0 +1,26 @@
+"settings.launch_at_login" = "Launch at login";
+"settings.show_in_dock" = "Show in Dock";
+"settings.accessibility_allowed" = "✓ Accessibility allowed";
+"settings.accessibility_not_allowed" = "⚠︎ Accessibility not allowed";
+"settings.accessibility_tooltip" = "Already ticked? Remove TabGroups from the list and add it again.";
+"settings.drag_key" = "Drag key:";
+"settings.switch_tabs" = "Switch tabs:";
+"settings.open_system_settings" = "Open Settings…";
+"settings.hint" = "Hold the drag key to move a window by any spot. Drag it onto the middle of another, still holding the key, and pause a moment to stack them under one strip of tabs. The switch key with 1…9 shows that tab (9: the last).";
+"settings.quit" = "Quit TabGroups";
+"settings.check_for_updates" = "Check for Updates…";
+"settings.version" = "Version %@";
+
+"menu.settings" = "Settings…";
+"menu.check_for_updates" = "Check for Updates…";
+"menu.close_window" = "Close Window";
+"menu.quit" = "Quit TabGroups";
+
+"tabs.remove_from_group" = "Remove from Group";
+"tabs.ungroup_all" = "Ungroup All";
+
+"key.command" = "⌘ Command";
+"key.option" = "⌥ Option";
+"key.control" = "⌃ Control";
+"key.function" = "fn";
+"key.control_option" = "⌃⌥ Control-Option";

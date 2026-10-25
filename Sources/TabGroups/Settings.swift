@@ -14,8 +14,10 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         NSApp.setActivationPolicy(showInDock ? .regular : .accessory)
     }
 
-    private let loginBox = NSButton(checkboxWithTitle: "Launch at login", target: nil, action: nil)
-    private let dockBox = NSButton(checkboxWithTitle: "Show in Dock", target: nil, action: nil)
+    private let loginBox = NSButton(checkboxWithTitle: L10n.text("settings.launch_at_login", fallback: "Launch at login"),
+                                    target: nil, action: nil)
+    private let dockBox = NSButton(checkboxWithTitle: L10n.text("settings.show_in_dock", fallback: "Show in Dock"),
+                                   target: nil, action: nil)
     private let keyPopup = NSPopUpButton()
     private let switchPopup = NSPopUpButton()
     private let axStatus = NSTextField(labelWithString: "")
@@ -34,10 +36,15 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         keyPopup.selectItem(at: DragKey.allCases.firstIndex(of: DragKey.current) ?? 0)
         switchPopup.selectItem(at: SwitchKey.allCases.firstIndex(of: SwitchKey.current) ?? 0)
         let trusted = AXIsProcessTrusted()
-        axStatus.stringValue = trusted ? "✓ Accessibility allowed" : "⚠︎ Accessibility not allowed"
+        axStatus.stringValue = trusted
+            ? L10n.text("settings.accessibility_allowed", fallback: "✓ Accessibility allowed")
+            : L10n.text("settings.accessibility_not_allowed", fallback: "⚠︎ Accessibility not allowed")
         axStatus.textColor = trusted ? .secondaryLabelColor : .systemOrange
         // A rebuilt (re-signed) app stays ticked in the list but isn't trusted.
-        axStatus.toolTip = trusted ? nil : "Already ticked? Remove TabGroups from the list and add it again."
+        axStatus.toolTip = trusted ? nil : L10n.text(
+            "settings.accessibility_tooltip",
+            fallback: "Already ticked? Remove TabGroups from the list and add it again."
+        )
     }
 
     @objc private func toggleLogin() {
@@ -83,24 +90,37 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         keyPopup.addItems(withTitles: DragKey.allCases.map(\.title))
         keyPopup.target = self
         keyPopup.action = #selector(pickKey)
-        let keyRow = NSStackView(views: [NSTextField(labelWithString: "Drag key:"), keyPopup])
+        let keyRow = NSStackView(views: [
+            NSTextField(labelWithString: L10n.text("settings.drag_key", fallback: "Drag key:")), keyPopup,
+        ])
         switchPopup.addItems(withTitles: SwitchKey.allCases.map(\.title))
         switchPopup.target = self
         switchPopup.action = #selector(pickSwitchKey)
-        let switchRow = NSStackView(views: [NSTextField(labelWithString: "Switch tabs:"), switchPopup,
+        let switchRow = NSStackView(views: [NSTextField(labelWithString: L10n.text(
+                                                "settings.switch_tabs", fallback: "Switch tabs:"
+                                            )), switchPopup,
                                             NSTextField(labelWithString: "+ 1…9")])
-        let axRow = NSStackView(views: [axStatus, NSButton(title: "Open Settings…", target: self,
-                                                           action: #selector(openAccessibility))])
+        let axRow = NSStackView(views: [axStatus, NSButton(
+            title: L10n.text("settings.open_system_settings", fallback: "Open Settings…"),
+            target: self,
+            action: #selector(openAccessibility)
+        )])
 
-        let hint = NSTextField(wrappingLabelWithString:
-            "Hold the drag key to move a window by any spot. Drag it onto the middle of another, "
-            + "still holding the key, and pause a moment to stack them under one strip of tabs. "
-            + "The switch key with 1…9 shows that tab (9: the last).")
+        let hint = NSTextField(wrappingLabelWithString: L10n.text(
+            "settings.hint",
+            fallback: "Hold the drag key to move a window by any spot. Drag it onto the middle of another, "
+                + "still holding the key, and pause a moment to stack them under one strip of tabs. "
+                + "The switch key with 1…9 shows that tab (9: the last)."
+        ))
         hint.textColor = .secondaryLabelColor
         hint.widthAnchor.constraint(equalToConstant: 300).isActive = true
-        let quit = NSButton(title: "Quit TabGroups", target: NSApp, action: #selector(NSApplication.terminate(_:)))
-        let updates = NSButton(title: "Check for Updates…", target: self, action: #selector(checkForUpdates))
-        let version = NSTextField(labelWithString: "Version \(Updates.current)")
+        let quit = NSButton(title: L10n.text("settings.quit", fallback: "Quit TabGroups"),
+                            target: NSApp, action: #selector(NSApplication.terminate(_:)))
+        let updates = NSButton(title: L10n.text("settings.check_for_updates", fallback: "Check for Updates…"),
+                               target: self, action: #selector(checkForUpdates))
+        let version = NSTextField(labelWithString: L10n.format(
+            "settings.version", fallback: "Version %@", Updates.current
+        ))
         version.textColor = .secondaryLabelColor
         let updateRow = NSStackView(views: [updates, version])
         let rows: [NSView] = [hint, axRow, keyRow, switchRow, loginBox, dockBox, updateRow, quit]

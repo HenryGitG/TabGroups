@@ -10,6 +10,8 @@ APP=build/TabGroups.app
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/TabGroups "$APP/Contents/MacOS/"
+ditto Sources/TabGroups/Resources/en.lproj "$APP/Contents/Resources/en.lproj"
+ditto Sources/TabGroups/Resources/zh-Hans.lproj "$APP/Contents/Resources/zh-Hans.lproj"
 mkdir -p "$APP/Contents/Frameworks"
 ditto .build/release/Sparkle.framework "$APP/Contents/Frameworks/Sparkle.framework"
 cp Support/Info.plist "$APP/Contents/"

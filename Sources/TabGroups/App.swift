@@ -87,11 +87,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Only on screen with the Dock icon shown, but its shortcuts work either way.
     private func setUpMenu() {
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "Settings…", action: #selector(showSettings), keyEquivalent: ",").target = self
-        appMenu.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "").target = self
-        appMenu.addItem(withTitle: "Close Window", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        appMenu.addItem(withTitle: L10n.text("menu.settings", fallback: "Settings…"),
+                        action: #selector(showSettings), keyEquivalent: ",").target = self
+        appMenu.addItem(withTitle: L10n.text("menu.check_for_updates", fallback: "Check for Updates…"),
+                        action: #selector(checkForUpdates), keyEquivalent: "").target = self
+        appMenu.addItem(withTitle: L10n.text("menu.close_window", fallback: "Close Window"),
+                        action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "Quit TabGroups", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: L10n.text("menu.quit", fallback: "Quit TabGroups"),
+                        action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         let root = NSMenuItem()
         root.submenu = appMenu
         NSApp.mainMenu = NSMenu()

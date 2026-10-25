@@ -21,10 +21,10 @@ enum DragKey: String, CaseIterable {
 
     var title: String {
         switch self {
-        case .command: "⌘ Command"
-        case .option: "⌥ Option"
-        case .control: "⌃ Control"
-        case .fn: "fn"
+        case .command: L10n.text("key.command", fallback: "⌘ Command")
+        case .option: L10n.text("key.option", fallback: "⌥ Option")
+        case .control: L10n.text("key.control", fallback: "⌃ Control")
+        case .fn: L10n.text("key.function", fallback: "fn")
         }
     }
 }
@@ -60,10 +60,10 @@ enum SwitchKey: String, CaseIterable {
 
     var title: String {
         switch self {
-        case .option: "⌥ Option"
-        case .control: "⌃ Control"
-        case .command: "⌘ Command"
-        case .controlOption: "⌃⌥ Control-Option"
+        case .option: L10n.text("key.option", fallback: "⌥ Option")
+        case .control: L10n.text("key.control", fallback: "⌃ Control")
+        case .command: L10n.text("key.command", fallback: "⌘ Command")
+        case .controlOption: L10n.text("key.control_option", fallback: "⌃⌥ Control-Option")
         }
     }
 
