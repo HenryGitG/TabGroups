@@ -5,7 +5,7 @@ import { fill, type Content } from "@/lib/content";
 import { AppGlyph, Lights, TitleText, WindowBody, type AppId } from "./Windows";
 
 // A pretend desktop that groups windows the way the app does: drag one onto the middle of
-// another (inset 25%), hold still (4 px, 0.35 s) until the highlight shows, let go.
+// another (inset 25%), see the highlight immediately, let go.
 
 type Point = { x: number; y: number };
 type Frame = { x: number; y: number; w: number; h: number };
@@ -14,8 +14,6 @@ type Drag = { kind: "group" | "tab"; gid: string; tab?: AppId; dx: number; dy: n
 
 const STRIP = 34; // the strip sits in this band above a group's windows
 const TEAR = 24; // drag a tab this far off the strip to pull it out
-const DWELL = 350;
-const STILL = 4;
 
 // The desktop, and a narrower, taller one for phones so its text stays readable once scaled down.
 type Layout = { w: number; h: number; size: Record<AppId, Frame> };
@@ -61,7 +59,6 @@ export default function Desktop({ c }: { c: Content["demo"] }) {
   const [lay, setLay] = useState(WIDE);
   const [groups, setGroups] = useState(() => start(WIDE));
   const [dragging, setDragging] = useState<string | null>(null);
-  const [over, setOver] = useState<string | null>(null);
   const [lit, setLit] = useState<string | null>(null);
   const [last, setLast] = useState<"start" | "grouped" | "torn">("start");
   const [cursor, setCursor] = useState<Point | null>(null);
@@ -75,8 +72,6 @@ export default function Desktop({ c }: { c: Content["demo"] }) {
   const litRef = useRef(lit);
   litRef.current = lit;
   const drag = useRef<Drag | null>(null);
-  const still = useRef<Point>({ x: 0, y: 0 });
-  const timer = useRef(0);
   const nextId = useRef(0);
   const demo = useRef(0); // bumped to cancel a running demo
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -100,7 +95,6 @@ export default function Desktop({ c }: { c: Content["demo"] }) {
       drag.current = { kind: "group", gid: g.id, dx: p.x - g.x, dy: p.y - g.y };
       setDragging(g.id);
     }
-    still.current = p;
     return true;
   }
 
@@ -120,13 +114,8 @@ export default function Desktop({ c }: { c: Content["demo"] }) {
         ),
       );
       const target = targetAt(groupsRef.current, p, d.gid);
-      setOver(target);
-      if (Math.hypot(p.x - still.current.x, p.y - still.current.y) > STILL) {
-        still.current = p;
-        window.clearTimeout(timer.current);
-        if (litRef.current) setLit(null);
-        timer.current = window.setTimeout(() => setLit(targetAt(groupsRef.current, still.current, d.gid)), DWELL);
-      }
+      litRef.current = target;
+      setLit(target);
       return;
     }
     // A tab: reorder along the strip, or pull it out once it's far enough off.
@@ -141,7 +130,6 @@ export default function Desktop({ c }: { c: Content["demo"] }) {
       const dx = Math.min(size.w / 2, 90);
       const frame = { ...size, x: clamp(p.x - dx, 100 - size.w, w - 100), y: clamp(p.y - 14, 0, h - 40) };
       drag.current = { kind: "group", gid: id, dx, dy: 14 };
-      still.current = p;
       setDragging(id);
       setLast("torn");
       setGroups((gs) => [
@@ -171,12 +159,10 @@ export default function Desktop({ c }: { c: Content["demo"] }) {
   }
 
   function up() {
-    window.clearTimeout(timer.current);
     const d = drag.current;
     const target = litRef.current;
     drag.current = null;
     setDragging(null);
-    setOver(null);
     setLit(null);
     if (d?.kind !== "group" || !target) return;
     setLast("grouped");
@@ -199,7 +185,6 @@ export default function Desktop({ c }: { c: Content["demo"] }) {
     setCursor(null);
     setDragging(null);
     setLit(null);
-    setOver(null);
     setLast("start");
     setGroups(start(layRef.current));
   }
@@ -269,7 +254,7 @@ export default function Desktop({ c }: { c: Content["demo"] }) {
       if (!alive()) return;
       press(app, "handle");
       await glide(middleOf("browser"), 1000);
-      await wait(DWELL + 450);
+      await wait(450);
       if (!alive()) return;
       up();
       await wait(900);
@@ -355,7 +340,7 @@ export default function Desktop({ c }: { c: Content["demo"] }) {
     .join(" · ");
   const idle =
     last === "torn" ? c.torn : biggest > 1 ? `${fill(c.grouped, { keys })} ${biggest < 3 ? c.more : ""}` : null;
-  const hint = dragging && lit ? c.release : dragging && over ? c.hold : idle;
+  const hint = dragging && lit ? c.release : idle;
   const target = groups.find((g) => g.id === lit);
   const initial = start(lay);
   const changed = last !== "start" || groups.some((g, i) => g.x !== initial[i]?.x || g.y !== initial[i]?.y);

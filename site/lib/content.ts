@@ -30,7 +30,7 @@ const en = {
     steps: [
       {
         title: "Drop one on another, and they stack.",
-        lines: ["Hold ⌘ and drag a window onto the middle of another.", "Pause until it lights up, then let go. Any app works."],
+        lines: ["Hold ⌘ and drag a window onto the middle of another.", "It lights up immediately; let go. Any app works."],
       },
       {
         title: "Click a tab. Or keep your hands on the keys.",
@@ -63,14 +63,14 @@ const en = {
     subtitle: "Quick on the keys. Easy on the mouse.",
     shortcuts: [
       { keys: ["⌘", "drag"], label: "Move a window by any spot" },
-      { keys: ["⌘", "drop", "pause"], label: "Stack it with another" },
+      { keys: ["⌘", "drop", "release"], label: "Stack it with another" },
       { keys: ["⌥", "1…8"], label: "Show that tab" },
       { keys: ["⌥", "9"], label: "Show the last tab" },
       { keys: ["drag a tab out"], label: "Make it a window again" },
       { keys: ["right-click a tab"], label: "Remove it, or ungroup all" },
     ],
     stats: [
-      { value: "0.35", unit: "s", body: "The pause that groups. Long enough to be sure, short enough not to wait." },
+      { value: "Instant", unit: "", body: "The target highlights as soon as the pointer reaches its middle." },
       { value: "9", unit: "", body: "Tabs one keystroke away, from ⌥1 to ⌥9." },
       { value: "1", unit: "", body: "Permission: Accessibility. That’s all it asks for." },
       { value: "0", unit: "", body: "Windows lost. Quit, and every window goes back on the desktop." },
@@ -94,7 +94,6 @@ const en = {
     label: "A pretend desktop you can try TabGroups on",
     start: "Drag Packing list onto the middle of the browser and hold still.",
     startNote: "On your Mac, hold ⌘ while you drag.",
-    hold: "Hold still…",
     release: "Now let go.",
     grouped: "Grouped. Click a tab, or press {keys}.",
     more: "Drop Booking confirmed in too, or drag a tab off the strip to pull it back out.",
@@ -193,8 +192,8 @@ const zh: Content = {
   story: {
     steps: [
       {
-        title: "拖过去，停一下，就叠成一组。",
-        lines: ["按住 ⌘，把窗口拖到另一个窗口中间。", "等它亮起来再松手。哪个 app 的窗口都行。"],
+        title: "拖到中间，就会亮起来。",
+        lines: ["按住 ⌘，把窗口拖到另一个窗口中间。", "高亮会立即出现，松手即可。哪个 app 的窗口都行。"],
       },
       {
         title: "点标签切换，手不离键盘也行。",
@@ -227,14 +226,14 @@ const zh: Content = {
     subtitle: "常用操作，一下就到。",
     shortcuts: [
       { keys: ["⌘", "拖动"], label: "从任意位置移动窗口" },
-      { keys: ["⌘", "拖到另一个窗口", "停一下"], label: "叠成一组" },
+      { keys: ["⌘", "拖到另一个窗口", "松手"], label: "叠成一组" },
       { keys: ["⌥", "1…8"], label: "显示对应的标签" },
       { keys: ["⌥", "9"], label: "显示最后一个标签" },
       { keys: ["把标签拖出来"], label: "变回独立窗口" },
       { keys: ["右键点标签"], label: "移出组，或解散所有组" },
     ],
     stats: [
-      { value: "0.35", unit: "秒", body: "停这么一下就成组。够你确认，又不用干等。" },
+      { value: "立即", unit: "", body: "光标进入目标窗口中央，高亮就会出现。" },
       { value: "9", unit: "", body: "个标签一键直达，从 ⌥1 到 ⌥9。" },
       { value: "1", unit: "", body: "项权限：辅助功能。除此之外什么都不要。" },
       { value: "0", unit: "", body: "个窗口会丢。退出时，所有窗口都回到桌面上。" },
@@ -258,7 +257,6 @@ const zh: Content = {
     label: "一张可以试用 TabGroups 的模拟桌面",
     start: "把「行李清单」拖到浏览器窗口中间，停住不动。",
     startNote: "在你的 Mac 上，拖动时要按住 ⌘。",
-    hold: "别动，再等一下…",
     release: "松手吧。",
     grouped: "成组了。点标签，或按 {keys} 切换。",
     more: "把「预订确认」也拖进来；或者把某个标签拖出标签栏，它就变回独立窗口。",

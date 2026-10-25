@@ -6,7 +6,7 @@
 "settings.drag_key" = "拖移键：";
 "settings.switch_tabs" = "切换标签页：";
 "settings.open_system_settings" = "打开系统设置…";
-"settings.hint" = "按住拖移键即可从窗口任意位置移动窗口。继续按住该键，将窗口拖到另一个窗口中央并稍作停留，即可把它们堆叠到同一标签栏下。按下切换键和 1…9 可显示对应标签页（9 表示最后一个）。";
+"settings.hint" = "按住拖移键即可从窗口任意位置移动窗口。继续按住该键，将窗口拖到另一个窗口中央，看到高亮后松开鼠标，即可把它们堆叠到同一标签栏下。按下切换键和 1…9 可显示对应标签页（9 表示最后一个）。";
 "settings.quit" = "退出 TabGroups";
 "settings.check_for_updates" = "检查更新…";
 "settings.version" = "版本 %@";

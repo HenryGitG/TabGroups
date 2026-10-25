@@ -1,12 +1,12 @@
 # TabGroups
 
-Cross-app window tabs for macOS, as a small native Swift app. Drop one window onto the middle of another, pause for a moment, and the two stack under a single strip of tabs, whichever apps they belong to. Inspired by the Tab groups feature of [TrellisWM](https://trelliswm.app).
+Cross-app window tabs for macOS, as a small native Swift app. Drop one window onto the middle of another, then release when it highlights, and the two stack under a single strip of tabs, whichever apps they belong to. Inspired by the Tab groups feature of [TrellisWM](https://trelliswm.app).
 
 [简体中文](README.zh-CN.md)
 
 ## What it does
 
-- **Group:** drag a window by its title bar onto the middle of another window (or onto a group's strip) and hold still for about 0.35 s. A highlight appears; let go and they become tabs. Dropping a grouped window brings its whole group along.
+- **Group:** drag a window by its title bar onto the middle of another window (or onto a group's strip). It highlights immediately; let go and they become tabs. Dropping a grouped window brings its whole group along.
 - **Switch:** click a tab. Only the shown tab sits in the group's frame; the others are parked in a screen corner.
 - **Reorder:** drag a tab along the strip.
 - **Tear off:** drag a tab more than 24 px off the strip. It becomes its own window again, at the size it had before it joined.
@@ -30,7 +30,7 @@ swift run
 ./make-app.sh && open build/TabGroups.app
 ```
 
-On first launch macOS asks for Accessibility access: tick TabGroups (or your terminal) in **System Settings ▸ Privacy & Security ▸ Accessibility**. The app checks every second and starts as soon as it's allowed; no restart needed. `make-app.sh` signs ad hoc, so the grant may need re-ticking after each rebuild. It compiles the Liquid Glass app icon (`Support/AppIcon.icon`, an Icon Composer file) with `actool`, which comes with Xcode; with only the command-line tools the app gets a generic icon.
+On first launch macOS asks for Accessibility access: tick TabGroups (or your terminal) in **System Settings ▸ Privacy & Security ▸ Accessibility**. The app checks every second and starts as soon as it's allowed; no restart needed. `make-app.sh` reuses the `TabGroups Local Development` code-signing identity when it is installed (or `SIGN_IDENTITY` when supplied), so the grant survives rebuilds; without either identity it falls back to ad-hoc signing and the grant may need re-ticking. It compiles the Liquid Glass app icon (`Support/AppIcon.icon`, an Icon Composer file) with `actool`, which comes with Xcode; with only the command-line tools the app gets a generic icon.
 
 ## Quitting
 
@@ -42,7 +42,7 @@ By default TabGroups has no Dock icon and no menu-bar item. Open it again to bri
 |---|---|
 | `AX.swift` | Accessibility helpers, the private `_AXUIElementGetWindow` (AX element → `CGWindowID`), conversion between AX (top-left) and AppKit (bottom-left) coordinates |
 | `WindowTracker.swift` | One `AXObserver` per app; a table of standard windows; hit-testing in real z-order via `CGWindowListCopyWindowInfo` |
-| `DragController.swift` | Global mouse monitors; detects title-bar drags from the WindowServer's frame, the middle-of-window drop zone and the hold; the drop highlight |
+| `DragController.swift` | Global mouse monitors; detects title-bar drags from the WindowServer's frame and the middle-of-window drop zone; the drop highlight |
 | `GroupManager.swift` | The group model: join, switch, park, tear off, follow moves/resizes and edge tiling, ungroup |
 | `TabStrip.swift` | The strip: a non-activating panel ordered just above the shown window; drawing, clicks, reorder, tear-off chip, context menu, upward shadow |
 | `App.swift` | Entry point, permission prompt, SIGINT/SIGTERM → orderly quit |

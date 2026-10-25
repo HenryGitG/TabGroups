@@ -16,7 +16,7 @@ Ordinary Mac users who keep several windows open at once, often from different a
 
 ## Product Purpose
 
-TabGroups gives any window from any app browser-style tabs. Hold ⌘, drag one window onto the middle of another and pause a moment: they stack under one strip of tabs. Click a tab to switch, drag it to reorder, drag it out to make it a window again. Success: a visitor understands the drop-and-pause gesture in seconds, downloads the app, and grants the one permission it needs.
+TabGroups gives any window from any app browser-style tabs. Hold ⌘, drag one window onto the middle of another, then release when it highlights: they stack under one strip of tabs. Click a tab to switch, drag it to reorder, drag it out to make it a window again. Success: a visitor understands the drop gesture in seconds, downloads the app, and grants the one permission it needs.
 
 ## Positioning
 
@@ -31,7 +31,7 @@ Tabs across apps, not inside one app: a browser tab, a Notes window and a termin
 
 ## Capabilities and Constraints
 
-- Group: hold the drag key (⌘ by default; ⌥ ⌃ fn selectable) and drag a window (from any spot in it, not just the title bar) onto the middle of another or onto a group's strip, hold still ~0.35 s, a highlight appears, release. Grouping only happens while the drag key is held.
+- Group: hold the drag key (⌘ by default; ⌥ ⌃ fn selectable) and drag a window (from any spot in it, not just the title bar) onto the middle of another or onto a group's strip. A highlight appears immediately; release to group. Grouping only happens while the drag key is held.
 - Switch: click a tab, or switch key + 1…8 (9 = last); ⌥ by default.
 - Reorder by dragging a tab along the strip; tear off by dragging it more than 24 px away; hover ✕ closes that window; right-click for Remove from Group / Ungroup All.
 - The strip follows the window when it moves, resizes or tiles to a screen edge.

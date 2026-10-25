@@ -3,6 +3,7 @@ import AppKit
 enum Style {
     static let stripHeight: CGFloat = 34
     static let cornerRadius: CGFloat = 10
+    static let shellWidth: CGFloat = 3
 }
 
 /// Several windows (from any apps) sharing one frame under one strip.
@@ -310,7 +311,7 @@ final class GroupManager {
         }
         stack(g)
         refreshTabs(g)
-        g.strip.show(at: g.stripFrame, above: g.active)
+        g.strip.show(at: g.stripFrame, shell: g.frame, above: g.active)
     }
 
     private func refreshTabs(_ g: TabGroup) {
@@ -341,7 +342,7 @@ final class GroupManager {
             else if !userResized { followTile(g, w, f); return }
         }
         fit(g, to: f)
-        g.strip.setFrame(Coords.toAppKit(g.stripFrame), display: true)
+        g.strip.setFrames(strip: g.stripFrame, shell: g.frame)
         scheduleSettle(g)
     }
 
@@ -358,7 +359,7 @@ final class GroupManager {
         parkHidden(g)
         liveDrag = id
         fit(g, to: f)
-        g.strip.setFrame(Coords.toAppKit(g.stripFrame), display: true)
+        g.strip.setFrames(strip: g.stripFrame, shell: g.frame)
         scheduleSettle(g)
     }
 
@@ -372,7 +373,7 @@ final class GroupManager {
     private func followTile(_ g: TabGroup, _ w: Win, _ f: CGRect) {
         settle?.cancel()
         g.frame = f
-        g.strip.setFrame(Coords.toAppKit(g.stripFrame), display: true)
+        g.strip.setFrames(strip: g.stripFrame, shell: g.frame)
         tileDone?.cancel()
         let work = DispatchWorkItem { [weak self, weak g] in
             MainActor.assumeIsolated {

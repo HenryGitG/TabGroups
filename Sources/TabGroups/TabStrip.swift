@@ -16,14 +16,13 @@ protocol TabStripDelegate: AnyObject {
     func tabStripUngroupAll(_ strip: TabStripPanel)
 }
 
-/// The strip is our own window, sat directly above the group's shown window.
-/// It's a non-activating panel at the normal level, ordered just above that
-/// window, so other windows still cover it normally.
+/// The interactive top of the shell around a group. A click-through companion
+/// panel draws the connected sides and bottom around the shown window.
 @MainActor
 final class TabStripPanel: NSPanel {
     weak var stripDelegate: TabStripDelegate?
     private let tabsView = TabStripView()
-    private let shadowPanel = StripShadow()
+    private let shellPanel = GroupShellPanel()
 
     init() {
         super.init(contentRect: NSRect(x: 0, y: 0, width: 400, height: Style.stripHeight),
@@ -43,7 +42,7 @@ final class TabStripPanel: NSPanel {
         fx.material = .headerView
         fx.blendingMode = .behindWindow
         fx.state = .active
-        fx.maskImage = .roundedMask(radius: Style.cornerRadius)
+        fx.maskImage = .topRoundedMask(radius: Style.cornerRadius)
         contentView = fx
 
         tabsView.frame = fx.bounds
@@ -62,21 +61,21 @@ final class TabStripPanel: NSPanel {
         tabsView.needsDisplay = true
     }
 
-    func show(at axFrame: CGRect, above windowID: CGWindowID) {
-        setFrame(Coords.toAppKit(axFrame), display: true)
+    func show(at axFrame: CGRect, shell axShellFrame: CGRect, above windowID: CGWindowID) {
+        setFrames(strip: axFrame, shell: axShellFrame)
         if !isVisible { orderFrontRegardless() }
-        if shadowPanel.parent == nil { addChildWindow(shadowPanel, ordered: .below) }
+        if shellPanel.parent == nil { addChildWindow(shellPanel, ordered: .below) }
         order(.above, relativeTo: Int(windowID))
     }
 
-    override func setFrame(_ frameRect: NSRect, display flag: Bool) {
-        super.setFrame(frameRect, display: flag)
-        shadowPanel.fit(under: frameRect)
+    func setFrames(strip axStripFrame: CGRect, shell axShellFrame: CGRect) {
+        setFrame(Coords.toAppKit(axStripFrame), display: true)
+        shellPanel.setFrame(Coords.toAppKit(axShellFrame), display: true)
     }
 
     override func orderOut(_ sender: Any?) {
-        removeChildWindow(shadowPanel)
-        shadowPanel.orderOut(nil)
+        removeChildWindow(shellPanel)
+        shellPanel.orderOut(nil)
         super.orderOut(sender)
     }
 }
@@ -138,12 +137,12 @@ final class TabStripView: NSView {
     /// TrellisWM's translucent strip, adapted to the current system appearance.
     override func draw(_ dirtyRect: NSRect) {
         let ink = NSColor.labelColor
-        let outline = NSBezierPath(roundedRect: bounds, xRadius: Style.cornerRadius, yRadius: Style.cornerRadius)
+        let outline = NSBezierPath.topRoundedRect(bounds, radius: Style.cornerRadius)
         NSColor.windowBackgroundColor.withAlphaComponent(0.78).setFill()
         outline.fill()
         ink.withAlphaComponent(0.14).setStroke()
         let r = Style.cornerRadius - 0.5
-        NSBezierPath(roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5), xRadius: r, yRadius: r).stroke()
+        NSBezierPath.topRoundedRect(bounds.insetBy(dx: 0.5, dy: 0.5), radius: r).stroke()
 
         // Dividers between tabs, left out next to a filled (shown or hovered) tab.
         ink.withAlphaComponent(0.14).setFill()
@@ -161,11 +160,11 @@ final class TabStripView: NSView {
             let shape = NSBezierPath(roundedRect: r, xRadius: 7, yRadius: 7)
 
             if isActive {
-                ink.withAlphaComponent(0.12).setFill()
+                ink.withAlphaComponent(0.09).setFill()
                 shape.fill()
                 let edge = NSBezierPath(roundedRect: r.insetBy(dx: 0.25, dy: 0.25), xRadius: 6.75, yRadius: 6.75)
                 edge.lineWidth = 0.5
-                ink.withAlphaComponent(0.16).setStroke()
+                ink.withAlphaComponent(0.13).setStroke()
                 edge.stroke()
             } else if hovered == i && !dragging {
                 ink.withAlphaComponent(0.06).setFill()
@@ -182,7 +181,7 @@ final class TabStripView: NSView {
             para.lineBreakMode = .byTruncatingTail
             let attrs: [NSAttributedString.Key: Any] = [
                 .font: NSFont.systemFont(ofSize: 12.5, weight: .semibold),
-                .foregroundColor: ink.withAlphaComponent(isActive ? 1 : 0.58),
+                .foregroundColor: ink.withAlphaComponent(isActive ? 1 : 0.68),
                 .paragraphStyle: para,
             ]
             // Ghostty's shortcut hint on the right; ✕ on the left on hover.
@@ -191,7 +190,7 @@ final class TabStripView: NSView {
             if let hint = shortcut(i) {
                 let hintAttrs: [NSAttributedString.Key: Any] = [
                     .font: NSFont.systemFont(ofSize: 12, weight: .medium),
-                    .foregroundColor: ink.withAlphaComponent(isActive ? 0.6 : 0.38),
+                    .foregroundColor: ink.withAlphaComponent(isActive ? 0.6 : 0.48),
                 ]
                 let w = (hint as NSString).size(withAttributes: hintAttrs).width
                 if room.width > w + 60 {
@@ -317,13 +316,10 @@ final class TabStripView: NSView {
     }
 }
 
-/// TrellisWM's upward shadow (CSS `0 -4px 18px #00000038`). The system window
-/// shadow goes all round and would fall on the window below, so this is a
-/// click-through child panel under the strip that reaches up and out, not down.
+/// The non-interactive part of a group's shell. The transparent centre leaves
+/// the wrapped app window fully visible and clickable.
 @MainActor
-private final class StripShadow: NSPanel {
-    static let pad: CGFloat = 24
-
+private final class GroupShellPanel: NSPanel {
     init() {
         super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
                    backing: .buffered, defer: true)
@@ -333,38 +329,35 @@ private final class StripShadow: NSPanel {
         ignoresMouseEvents = true
         hidesOnDeactivate = false
         isReleasedWhenClosed = false
+        level = .normal
         collectionBehavior = [.ignoresCycle, .transient]
         animationBehavior = .none
-        contentView = ShadowView()
-    }
-
-    /// It reaches up into the menu bar when the group is at the top of the
-    /// screen; AppKit would push it down over the window under the strip.
-    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect { frameRect }
-
-    func fit(under strip: NSRect) {
-        setFrame(NSRect(x: strip.minX - Self.pad, y: strip.minY,
-                        width: strip.width + Self.pad * 2, height: strip.height + Self.pad), display: true)
+        contentView = GroupShellView()
     }
 }
 
-private final class ShadowView: NSView {
+private final class GroupShellView: NSView {
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
     override func draw(_ dirtyRect: NSRect) {
-        let pad = StripShadow.pad
-        let strip = NSBezierPath(roundedRect: NSRect(x: pad, y: 0, width: bounds.width - pad * 2, height: Style.stripHeight),
-                                 xRadius: Style.cornerRadius, yRadius: Style.cornerRadius)
-        // Clip the strip's own shape out: it's glass, and must not darken.
-        let clip = NSBezierPath(rect: bounds)
-        clip.append(strip)
-        clip.windingRule = .evenOdd
-        clip.addClip()
-        let shadow = NSShadow()
-        shadow.shadowOffset = NSSize(width: 0, height: 4)   // up
-        shadow.shadowBlurRadius = 18
-        shadow.shadowColor = NSColor.black.withAlphaComponent(0.22)
-        shadow.set()
-        NSColor.black.setFill()
-        strip.fill()
+        let outer = NSBezierPath(roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5),
+                                 xRadius: Style.cornerRadius,
+                                 yRadius: Style.cornerRadius)
+        let innerRect = NSRect(x: Style.shellWidth,
+                               y: Style.shellWidth,
+                               width: max(0, bounds.width - Style.shellWidth * 2),
+                               height: max(0, bounds.height - Style.stripHeight - Style.shellWidth))
+        let inner = NSBezierPath(roundedRect: innerRect,
+                                 xRadius: max(0, Style.cornerRadius - Style.shellWidth),
+                                 yRadius: max(0, Style.cornerRadius - Style.shellWidth))
+        outer.append(inner)
+        outer.windingRule = .evenOdd
+
+        NSColor.windowBackgroundColor.withAlphaComponent(0.94).setFill()
+        outer.fill()
     }
 }
 
@@ -422,5 +415,34 @@ extension NSImage {
         image.capInsets = NSEdgeInsets(top: radius, left: radius, bottom: radius, right: radius)
         image.resizingMode = .stretch
         return image
+    }
+
+    static func topRoundedMask(radius: CGFloat) -> NSImage {
+        let edge = radius * 2 + 1
+        let image = NSImage(size: NSSize(width: edge, height: edge), flipped: false) { rect in
+            NSColor.black.setFill()
+            NSBezierPath.topRoundedRect(rect, radius: radius).fill()
+            return true
+        }
+        image.capInsets = NSEdgeInsets(top: radius, left: radius, bottom: 0, right: radius)
+        image.resizingMode = .stretch
+        return image
+    }
+}
+
+private extension NSBezierPath {
+    static func topRoundedRect(_ rect: NSRect, radius: CGFloat) -> NSBezierPath {
+        let r = min(max(0, radius), min(rect.width, rect.height) / 2)
+        let path = NSBezierPath()
+        path.move(to: NSPoint(x: rect.minX, y: rect.minY))
+        path.line(to: NSPoint(x: rect.minX, y: rect.maxY - r))
+        path.appendArc(withCenter: NSPoint(x: rect.minX + r, y: rect.maxY - r),
+                       radius: r, startAngle: 180, endAngle: 90, clockwise: true)
+        path.line(to: NSPoint(x: rect.maxX - r, y: rect.maxY))
+        path.appendArc(withCenter: NSPoint(x: rect.maxX - r, y: rect.maxY - r),
+                       radius: r, startAngle: 90, endAngle: 0, clockwise: true)
+        path.line(to: NSPoint(x: rect.maxX, y: rect.minY))
+        path.close()
+        return path
     }
 }

@@ -6,7 +6,7 @@
 "settings.drag_key" = "Drag key:";
 "settings.switch_tabs" = "Switch tabs:";
 "settings.open_system_settings" = "Open Settings…";
-"settings.hint" = "Hold the drag key to move a window by any spot. Drag it onto the middle of another, still holding the key, and pause a moment to stack them under one strip of tabs. The switch key with 1…9 shows that tab (9: the last).";
+"settings.hint" = "Hold the drag key to move a window by any spot. Drag it onto the middle of another, still holding the key, then release when it highlights to stack them under one strip of tabs. The switch key with 1…9 shows that tab (9: the last).";
 "settings.quit" = "Quit TabGroups";
 "settings.check_for_updates" = "Check for Updates…";
 "settings.version" = "Version %@";

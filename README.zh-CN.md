@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-把一个窗口拖到另一个窗口的**中间**，停一下（约 0.35 秒）出现高亮，松手后两个窗口叠成一组，共用上方一条标签栏，不管它们属于哪个 app。
+把一个窗口拖到另一个窗口的**中间**会立即出现高亮，松手后两个窗口叠成一组，共用上方一条标签栏，不管它们属于哪个 app。
 点标签切换；在栏内拖动标签可以排序；把标签拖出栏外就撕下来成为独立窗口；鼠标悬停时点 ✕ 关闭这个窗口；右键标签可以把它移出组，或解散所有组（Ungroup All）。
 打开 TabGroups（或在它运行时再打开一次）会显示一个 Liquid Glass 风格的设置窗口：「Launch at login」开机自启动（需要以 `TabGroups.app` 运行，`swift run` 时是灰的；开机自启动时不弹窗口）、「Show in Dock」是否显示 Dock 图标，以及「Quit TabGroups」退出按钮。
 
@@ -21,6 +21,7 @@ chmod +x make-app.sh && ./make-app.sh && open build/TabGroups.app
 `make-app.sh` 会用 Xcode 自带的 `actool` 编译 Liquid Glass 图标（`Support/AppIcon.icon`，可以用 Icon Composer 打开编辑）；只装了命令行工具时，app 会用通用图标。
 
 第一次运行会弹出辅助功能授权，请到「系统设置 ▸ 隐私与安全性 ▸ 辅助功能」里勾选它。授权后无需重启，程序每秒检查一次，拿到权限就会开始工作。
+本机安装 `TabGroups Local Development` 代码签名身份后，`make-app.sh` 会在每次构建时自动复用它，辅助功能授权不会因重新编译而失效。也可以通过 `SIGN_IDENTITY` 指定其他身份；没有可用身份时会回退到 ad-hoc 签名。
 程序不能放进沙盒：Accessibility API 在沙盒里不可用，所以它也上不了 Mac App Store。
 
 默认没有 Dock 图标也没有菜单栏图标。退出时（再打开一次 app，在设置窗口点「Quit TabGroups」或按 ⌘Q；也可以在终端按 Ctrl-C，或 `pkill -INT TabGroups`）会先解散所有组，把藏起来的窗口放回屏幕上。
@@ -31,7 +32,7 @@ chmod +x make-app.sh && ./make-app.sh && open build/TabGroups.app
 |---|---|
 | `AX.swift` | Accessibility API 的封装、私有函数 `_AXUIElementGetWindow`、AX 坐标（左上原点）和 AppKit 坐标（左下原点）的互相转换 |
 | `WindowTracker.swift` | 给每个 app 建一个 `AXObserver`，维护「CGWindowID → 窗口」表；用 `CGWindowListCopyWindowInfo` 按真实层级找出光标下面的窗口 |
-| `DragController.swift` | 全局监听鼠标事件；判断是否在拖动标题栏、光标是否在目标中间区域、是否停留够久，然后显示高亮 |
+| `DragController.swift` | 全局监听鼠标事件；判断是否在拖动标题栏、光标是否在目标中间区域，然后立即显示高亮 |
 | `GroupManager.swift` | 标签组模型：合并、切换、把不显示的标签「停放」到屏幕外、撕下、跟随移动、解散 |
 | `TabStrip.swift` | 标签栏：一个不会抢焦点的 `NSPanel`，负责绘制、点击、拖动排序、撕下时跟随光标的小卡片 |
 

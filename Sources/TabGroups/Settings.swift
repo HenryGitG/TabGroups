@@ -109,7 +109,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         let hint = NSTextField(wrappingLabelWithString: L10n.text(
             "settings.hint",
             fallback: "Hold the drag key to move a window by any spot. Drag it onto the middle of another, "
-                + "still holding the key, and pause a moment to stack them under one strip of tabs. "
+                + "still holding the key, then release when it highlights to stack them under one strip of tabs. "
                 + "The switch key with 1…9 shows that tab (9: the last)."
         ))
         hint.textColor = .secondaryLabelColor

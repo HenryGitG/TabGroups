@@ -74,13 +74,10 @@ enum SwitchKey: String, CaseIterable {
 }
 
 /// Watches the user dragging other apps' windows by their title bars.
-/// Drop one on the *middle* of another and hold still for a moment → they
-/// become tabs of one group. (TrellisWM: "Drag a window onto the middle of
-/// another and pause a moment.")
+/// Drop one on the *middle* of another → the target highlights immediately;
+/// release there to make the windows tabs of one group.
 @MainActor
 final class DragController {
-    var holdDuration: TimeInterval = 0.35
-    var holdSlop: CGFloat = 4               // "still" = the pointer stays this close the whole time
     var middleInset: CGFloat = 0.25         // outer 25% of each side is "edge", not "middle"
 
     private let tracker: WindowTracker
@@ -91,12 +88,9 @@ final class DragController {
     private var source: Win?
     private var sourceStart: CGRect?
     private var moving = false
-    private var ticker: Timer?
 
     private var target: Win?
     private var targetZone: CGRect = .zero
-    private var anchor: CGPoint = .zero
-    private var since = Date.distantFuture
     private var armed = false
 
     private var tap: CFMachPort?
@@ -256,10 +250,6 @@ final class DragController {
 
     private func startMoving() {
         moving = true
-        // Keep evaluating while the pointer rests: no drag events arrive then.
-        ticker = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.evaluate() }
-        }
     }
 
     private func mouseDown() {
@@ -284,11 +274,17 @@ final class DragController {
         let go = moving && armed && keyHeld
         let src: Win? = go ? source : nil
         let dst: Win? = go ? target : nil
+        let needsWindowServerSettle = grab == nil
         reset()
         guard let src, let dst else { return }
-        // Let the WindowServer finish its own drag first.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-            MainActor.assumeIsolated { self?.groups.join(src, onto: dst) }
+        if needsWindowServerSettle {
+            // A native title-bar drag finishes asynchronously in WindowServer.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+                MainActor.assumeIsolated { self?.groups.join(src, onto: dst) }
+            }
+        } else {
+            // Drag-key moves are ours, so nothing needs to settle first.
+            groups.join(src, onto: dst)
         }
     }
 
@@ -316,22 +312,9 @@ final class DragController {
               z.insetBy(dx: z.width * middleInset, dy: z.height * middleInset).contains(p)
         else { disarm(); return }
 
-        if c.id != target?.id {
+        if c.id != target?.id || !armed {
             target = c
             targetZone = z
-            anchor = p
-            since = Date()
-            armed = false
-            highlight.hide()
-        }
-        if hypot(p.x - anchor.x, p.y - anchor.y) > holdSlop {
-            // Travelling (again): restart the hold. Moving on after the
-            // highlight came up takes it back: only a release while still
-            // groups.
-            anchor = p
-            since = Date()
-            if armed { armed = false; highlight.hide() }
-        } else if !armed && Date().timeIntervalSince(since) >= holdDuration {
             armed = true
             highlight.show(over: z)
         }
@@ -345,8 +328,6 @@ final class DragController {
 
     private func reset() {
         groups.dragEnded()
-        ticker?.invalidate()
-        ticker = nil
         source = nil
         sourceStart = nil
         grab = nil

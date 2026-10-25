@@ -25,12 +25,19 @@ else
   echo "actool not found (needs Xcode): building without the app icon"
 fi
 
-# Ad-hoc signing by default: macOS ties the Accessibility grant to the
-# signature, so after every rebuild you may need to re-tick TabGroups in
-# System Settings > Privacy & Security > Accessibility. Sign with a real
-# identity to keep the grant across rebuilds:
+# Prefer the stable local-development identity when it is installed. macOS
+# ties the Accessibility grant to the signature, so ad-hoc signing changes
+# the app's identity after every rebuild. Override with a different identity:
 #   SIGN_IDENTITY="Apple Development: you@example.com" ./make-app.sh
-ID="${SIGN_IDENTITY:--}"
+LOCAL_IDENTITY="TabGroups Local Development"
+if [[ -n "${SIGN_IDENTITY:-}" ]]; then
+  ID="$SIGN_IDENTITY"
+elif security find-identity -v -p codesigning 2>/dev/null | grep -Fq "\"$LOCAL_IDENTITY\""; then
+  ID="$LOCAL_IDENTITY"
+else
+  ID="-"
+  echo "warning: $LOCAL_IDENTITY is not installed; using ad-hoc signing"
+fi
 # Sparkle's helpers first, inside out (as Sparkle's docs list them).
 SPK="$APP/Contents/Frameworks/Sparkle.framework"
 codesign -f -s "$ID" -o runtime "$SPK/Versions/B/XPCServices/Installer.xpc"
